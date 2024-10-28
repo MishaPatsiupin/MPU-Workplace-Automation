@@ -30,4 +30,5 @@ int moisture1_water = 896;
 int moisture2_air = 2544;
 int moisture2_water = 901;
 
-
+bool window_flag;
+unsigned long last_window_control_time = 0;

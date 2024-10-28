@@ -4,6 +4,7 @@
 
 struct window_settings window_settings;
 struct waterind_settings waterind_settings;
+sensor_data now_sensor_data;
 
 void setup() {
     Wire.begin(MY_SDA_PIN, MY_SCL_PIN);
@@ -15,9 +16,22 @@ void setup() {
 
 void loop() {
     eb.tick();
+    servo_window.tick();
+
     unsigned long current_millis = millis();
 
-    update_main_display(current_millis);
+    if (current_millis - previous_millis >= interval) {
+        previous_millis = current_millis;
+
+        now_sensor_data = read_data_sensors();
+window_control(now_sensor_data.temperature);
+        if (!in_menu) {
+           // display_data(2, 15, 1, 50, 50, 1, 1);
+           display_data(2, now_sensor_data.temperature, 1, now_sensor_data.moisture1, now_sensor_data.moisture2,
+                        now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant);
+        }
+    }
+
     handle_backlight();
     handle_menu_navigation();
     handle_value_adjustments();

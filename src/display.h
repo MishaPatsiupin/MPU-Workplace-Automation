@@ -4,7 +4,7 @@
 #include "globals.h"
 
 struct waterind_settings {
-    int type = -1;
+    int type = -1; // 0 - auto, 1 - time
     int max_control_value_auto = 0;
     int time_s_auto = 0;
     int time_s_time = 0;
@@ -14,7 +14,7 @@ struct waterind_settings {
 extern waterind_settings waterind_settings;
 
 struct window_settings {
-    int type = -1;
+    int type = -1; //0 - auto, 1 - time, 2 - mix
     int low_temp_auto = 0;
     int max_temp_auto = 0;
     int time_time = 0;
@@ -37,7 +37,7 @@ void display_data(int status, float temperature, int weather, int moisture1, int
 
 extern void (*menu_functions[])();
 
-void update_main_display(unsigned long current_millis);
+
 void handle_backlight();
 void handle_menu_navigation();
 void handle_value_adjustments();
@@ -46,5 +46,9 @@ void handle_right_press_for_pos2();
 void handle_left_press_for_pos2();
 void handle_right_press_for_pos3();
 void handle_left_press_for_pos3();
+
+void measure_air(int sensor_pin);
+void measure_water(int sensor_pin);
+
 
 #endif // DISPLAY_H

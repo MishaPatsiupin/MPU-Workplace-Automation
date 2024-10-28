@@ -71,7 +71,8 @@ const char *debug_window_time[] = {
 };
 
 // Display functions
-void display_data(int status, float temperature, int weather, int moisture1, int moisture2, int liquid_sensor_water, int liquid_sensor_plant) {
+void display_data(int status, float temperature, int weather, int moisture1, int moisture2, int liquid_sensor_water,
+                  int liquid_sensor_plant) {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("01/11 12:00");
@@ -232,14 +233,6 @@ void update_debug_window() {
     display_debug_window();
 }
 
-void update_main_display(unsigned long current_millis) {
-    if (current_millis - previous_millis >= interval) {
-        previous_millis = current_millis;
-        if (!in_menu) {
-            display_data(2, 25.5, 1, 55, 60, 1, 0);
-        }
-    }
-}
 
 // Backlight functions
 void turn_on_backlight() {
@@ -321,9 +314,11 @@ void handle_right_press_for_pos1() {
     switch (current_menu) {
         case 0:
             Serial.println("Calling function for correction 1 air");
+            measure_air(CS_1);
             break;
         case 1:
             Serial.println("Calling function for correction 2 air");
+            measure_air(CS_2);
             break;
         case 2:
             if (waterind_settings.type == 0 || waterind_settings.type == -1) waterind_settings.type = 1;
@@ -343,9 +338,11 @@ void handle_right_press_for_pos2() {
     switch (current_menu) {
         case 0:
             Serial.println("Calling function for correction 1 water");
+            measure_water(CS_1);
             break;
         case 1:
             Serial.println("Calling function for correction 2 water");
+            measure_water(CS_2);
             break;
         case 2:
             if (waterind_settings.type == 0) {
@@ -362,7 +359,10 @@ void handle_right_press_for_pos2() {
         case 3:
             if (window_settings.type == 0) {
                 if (window_settings.low_temp_auto <= 35) {
-                    window_settings.low_temp_auto += 5;
+                    window_settings.low_temp_auto += 1;
+                }
+                if (window_settings.max_temp_auto <= window_settings.low_temp_auto) {
+                    window_settings.max_temp_auto = window_settings.low_temp_auto + 1;
                 }
             } else if (window_settings.type == 1) {
                 if (window_settings.time_time <= 175) {
@@ -391,8 +391,8 @@ void handle_left_press_for_pos2() {
             break;
         case 3:
             if (window_settings.type == 0) {
-                if (window_settings.low_temp_auto >= -35) {
-                    window_settings.low_temp_auto -= 5;
+                if (window_settings.low_temp_auto >= -39) {
+                    window_settings.low_temp_auto -= 1;
                 }
             } else if (window_settings.type == 1) {
                 if (window_settings.time_time >= 5) {
@@ -435,8 +435,8 @@ void handle_right_press_for_pos3() {
             break;
         case 3:
             if (window_settings.type == 0) {
-                if (window_settings.max_temp_auto <= 35) {
-                    window_settings.max_temp_auto += 5;
+                if (window_settings.max_temp_auto <= 39) {
+                    window_settings.max_temp_auto += 1;
                 }
             } else if (window_settings.type == 1) {
                 if (window_settings.periud_time <= 175) {
@@ -479,8 +479,11 @@ void handle_left_press_for_pos3() {
             break;
         case 3:
             if (window_settings.type == 0) {
-                if (window_settings.max_temp_auto >= -35) {
-                    window_settings.max_temp_auto -= 5;
+                if (window_settings.max_temp_auto >= -39) {
+                    window_settings.max_temp_auto -= 1;
+                }
+                if (window_settings.low_temp_auto >= window_settings.max_temp_auto) {
+                    window_settings.low_temp_auto = window_settings.max_temp_auto - 1;
                 }
             } else if (window_settings.type == 1) {
                 if (window_settings.periud_time >= 5) {

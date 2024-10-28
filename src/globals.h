@@ -61,6 +61,9 @@ extern unsigned long previous_millis;
 extern int control_moisture1_value;
 extern int control_moisture2_value;
 
+extern bool window_flag;
+extern unsigned long last_window_control_time;
+
 
 
 
