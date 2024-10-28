@@ -1,16 +1,16 @@
 #include "display.h"
 #include "globals.h"
-
+#include "data_capture.h"
 
 struct window_settings window_settings;
 struct waterind_settings waterind_settings;
 
 void setup() {
-    Wire.begin(21, 22);
+    Wire.begin(MY_SDA_PIN, MY_SCL_PIN);
     Serial.begin(115200);
-    lcd.begin(20, 04);
-    turn_off_backlight();
-    eb.counter = 0;
+    init_devices();
+
+
 }
 
 void loop() {

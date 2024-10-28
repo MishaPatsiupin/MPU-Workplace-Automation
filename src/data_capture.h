@@ -1,8 +1,18 @@
-//
-// Created by Bear9 on 28.10.2024.
-//
-
 #ifndef DATA_CAPTURE_H
 #define DATA_CAPTURE_H
+
+#include "globals.h"
+#include "display.h"
+
+
+void init_devices();
+
+
+
+
+
+
+
+
 
 #endif //DATA_CAPTURE_H
