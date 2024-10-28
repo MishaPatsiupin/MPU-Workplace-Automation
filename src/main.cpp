@@ -10,8 +10,6 @@ void setup() {
     Wire.begin(MY_SDA_PIN, MY_SCL_PIN);
     Serial.begin(115200);
     init_devices();
-
-
 }
 
 void loop() {
@@ -24,11 +22,12 @@ void loop() {
         previous_millis = current_millis;
 
         now_sensor_data = read_data_sensors();
-window_control(now_sensor_data.temperature);
+        window_control(now_sensor_data.temperature);
+        pump_control(now_sensor_data.moisture1, now_sensor_data.moisture2);
         if (!in_menu) {
-           // display_data(2, 15, 1, 50, 50, 1, 1);
-           display_data(2, now_sensor_data.temperature, 1, now_sensor_data.moisture1, now_sensor_data.moisture2,
-                        now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant);
+            // display_data(2, 15, 1, 50, 50, 1, 1);
+            display_data(update_status(), now_sensor_data.temperature, 1, now_sensor_data.moisture1, now_sensor_data.moisture2,
+                         now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant);
         }
     }
 

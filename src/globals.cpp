@@ -17,8 +17,10 @@ bool in_menu = false; // Флаг для отслеживания состоян
 int current_menu = 0; // Индекс текущего меню
 
 // Контрольные значения
-int control_moisture1_value = 0;
-int control_moisture2_value = 0;
+int control_moisture1_value = 40;
+int control_moisture2_value = 40;
+bool pump_flag = false;
+unsigned long last_pump_control_time = 0;
 
 // Пользовательские символы
 byte custom_wind[] = {B11100, B00011, B11000, B00111, B00000, B11100, B00011, B11000};
@@ -30,5 +32,5 @@ int moisture1_water = 896;
 int moisture2_air = 2544;
 int moisture2_water = 901;
 
-bool window_flag;
+bool window_flag = false;
 unsigned long last_window_control_time = 0;

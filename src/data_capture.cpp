@@ -149,38 +149,22 @@ void measure_water(int sensor_pin) {
     }
 }
 
-
-// struct window_settings {
-//     int type = -1; //0 - auto, 1 - time, 2 - mix
-//     int low_temp_auto = 0;
-//     int max_temp_auto = 0;
-//     int time_time = 0;
-//     int periud_time = 0;
-// };
-
+bool window_open_due_to_temp = false;
 
 void window_control(float temp) {
     unsigned long current_time = millis();
-    Serial.print("Current time: ");
-    Serial.println(current_time);
-    Serial.print("Window settings type: ");
-    Serial.println(window_settings.type);
-    Serial.print("Temperature: ");
-    Serial.println(temp);
 
     switch (window_settings.type) {
         case 0: {
             Serial.println("Mode: Auto");
             if (temp < window_settings.low_temp_auto) {
-                Serial.println("Temperature below low_temp_auto, opening window");
-                window_flag = true;
-                servo_window_control(true);
-            } else if (temp > window_settings.max_temp_auto) {
-                Serial.println("Temperature above max_temp_auto, closing window");
+                Serial.println("Temperature below low_temp_auto, closing window");
                 window_flag = false;
                 servo_window_control(false);
-            } else {
-                Serial.println("Temperature within range, no action taken");
+            } else if (temp > window_settings.max_temp_auto) {
+                Serial.println("Temperature above max_temp_auto, opening window");
+                window_flag = true;
+                servo_window_control(true);
             }
             break;
         }
@@ -217,10 +201,137 @@ void window_control(float temp) {
             }
             break;
         }
+        case 2: {
+            Serial.println("Mode: Mix");
+            unsigned long time_time_ms = window_settings.time_time * 1000;
+            unsigned long periud_time_ms = window_settings.periud_time * 1000;
+
+            Serial.print("Time time (ms): ");
+            Serial.println(time_time_ms);
+            Serial.print("Period time (ms): ");
+            Serial.println(periud_time_ms);
+
+            if (window_flag) {
+                Serial.println("Window is currently open");
+                if (current_time - last_window_control_time >= time_time_ms) {
+                    Serial.println("Time to close the window");
+                    window_flag = false;
+                    window_open_due_to_temp = false;
+                    servo_window_control(false);
+                    last_window_control_time = current_time;
+                } else {
+                    Serial.println("Not yet time to close the window");
+                }
+            } else {
+                Serial.println("Window is currently closed");
+                if (temp > window_settings.max_temp_auto) {
+                    Serial.println("Temperature above max_temp_auto, opening window");
+                    window_flag = true;
+                    window_open_due_to_temp = true;
+                    servo_window_control(true);
+                    last_window_control_time = current_time;
+                } else if (current_time - last_window_control_time >= periud_time_ms) {
+                    Serial.println("Time to open the window");
+                    window_flag = true;
+                    window_open_due_to_temp = false;
+                    servo_window_control(true);
+                    last_window_control_time = current_time;
+                } else {
+                    Serial.println("Not yet time to open the window");
+                }
+            }
+
+            // Additional logic to keep the window open if the temperature is above max_temp_auto
+            if (window_flag && temp > window_settings.max_temp_auto) {
+                Serial.println("Temperature above max_temp_auto, keeping window open");
+                window_open_due_to_temp = true;
+            } else if (window_open_due_to_temp && temp < window_settings.low_temp_auto) {
+                Serial.println("Temperature below low_temp_auto, closing window");
+                window_flag = false;
+                window_open_due_to_temp = false;
+                servo_window_control(false);
+                last_window_control_time = current_time;
+            }
+            break;
+        }
     }
 }
 
 void servo_window_control(bool window_flag_local) {
     servo_window.setTargetDeg(window_flag_local ? 0 : 270);
-    Serial.println("Window state: " + window_flag ? "open" : "closed");
+    Serial.println("Window state: " + String(window_flag_local ? "open" : "closed"));
+}
+
+void pump_control(int moisture1, int moisture2) {
+    unsigned long current_time = millis();
+
+    switch (waterind_settings.type) {
+        case 0: { // Auto mode
+            Serial.println("Mode: Auto");
+            if (moisture1 > control_moisture1_value || moisture2 > control_moisture2_value) {
+                if (!pump_flag) {
+                    Serial.println("Moisture below control value, starting pump");
+                    pump_flag = true;
+                    last_pump_control_time = current_time;
+                    start_pump();
+                }
+            }
+
+            if (pump_flag) {
+                if (moisture1 >= waterind_settings.max_control_value_auto || moisture2 >= waterind_settings.max_control_value_auto) {
+                    Serial.println("Moisture above max control value, stopping pump");
+                    pump_flag = false;
+                    stop_pump();
+                } else if (current_time - last_pump_control_time >= waterind_settings.time_s_auto * 1000) {
+                    Serial.println("Auto watering time elapsed, stopping pump");
+                    pump_flag = false;
+                    stop_pump();
+                }
+            }
+            break;
+        }
+        case 1: { // Time-based mode
+            Serial.println("Mode: Time-based");
+            unsigned long period_time_ms = waterind_settings.period_time * 1000;
+            unsigned long time_s_time_ms = waterind_settings.time_s_time * 1000;
+
+            if (!pump_flag && current_time - last_pump_control_time >= period_time_ms) {
+                Serial.println("Period time elapsed, starting pump");
+                pump_flag = true;
+                last_pump_control_time = current_time;
+                start_pump();
+            }
+
+            if (pump_flag && current_time - last_pump_control_time >= time_s_time_ms) {
+                Serial.println("Watering time elapsed, stopping pump");
+                pump_flag = false;
+                stop_pump();
+            }
+            break;
+        }
+    }
+}
+
+void start_pump() {
+    // Логика включения помпы
+    digitalWrite(WATER_PUMP, HIGH);
+    Serial.println("Pump is ON");
+}
+
+void stop_pump() {
+    // Логика выключения помпы
+    digitalWrite(WATER_PUMP, LOW);
+    Serial.println("Pump is OFF");
+}
+
+int update_status() {
+    if (pump_flag && window_flag) {
+        return 3; // "wat_vent"
+    } else if (pump_flag) {
+        return 1; // "watering"
+    } else if (window_flag) {
+        return 2; // "vent"
+    } else {
+        return 0; // "wait"
+    }
 }

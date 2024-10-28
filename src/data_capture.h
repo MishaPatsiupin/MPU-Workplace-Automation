@@ -33,5 +33,10 @@ int read_liquid_sensor_water();
 int read_liquid_sensor_plant();
 void servo_window_control(bool window_flag_local);
 void window_control(float temp);
+void pump_control(int moisture1, int moisture2);
+void start_pump();
+void stop_pump();
+int update_status();
+
 
 #endif //DATA_CAPTURE_H

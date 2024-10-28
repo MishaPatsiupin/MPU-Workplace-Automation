@@ -6,9 +6,9 @@ void (*menu_functions[])() = {
 
 const char *my_status[] = {
     "wait",
-    "watering",
+    "water.",
     "vent",
-    "wat_vent"
+    "watVent"
 };
 
 const char *debug_moisture1[] = {
