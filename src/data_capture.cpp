@@ -262,13 +262,32 @@ void servo_window_control(bool window_flag_local) {
     Serial.println("Window state: " + String(window_flag_local ? "open" : "closed"));
 }
 
-void pump_control(int moisture1, int moisture2) {
+void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sensor) {
     unsigned long current_time = millis();
+
+    // Проверка датчиков воды и потопа
+    if (water_sensor == 1) {
+        Serial.println("No water in tank, stopping pump");
+        if (pump_flag) {
+            pump_flag = false;
+            stop_pump();
+        }
+        return;
+    }
+
+    if (flood_sensor == 0) {
+        Serial.println("Flood detected, stopping pump");
+        if (pump_flag) {
+            pump_flag = false;
+            stop_pump();
+        }
+        return;
+    }
 
     switch (waterind_settings.type) {
         case 0: { // Auto mode
             Serial.println("Mode: Auto");
-            if (moisture1 > control_moisture1_value || moisture2 > control_moisture2_value) {
+            if (moisture1 < control_moisture1_value || moisture2 < control_moisture2_value) {
                 if (!pump_flag) {
                     Serial.println("Moisture below control value, starting pump");
                     pump_flag = true;
@@ -342,7 +361,6 @@ int check_weather_condition(float pressure) {
     const float cloudy_or_rainy_max = 745.0;
     const float sunny_min = 745.1;
     const float sunny_max = 790.0;
-    Serial.println("Pressure: " + String(pressure));
 
     if (pressure >= cloudy_or_rainy_min && pressure <= cloudy_or_rainy_max) {
         return 1; // Облачно или дождь

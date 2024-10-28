@@ -23,7 +23,7 @@ void loop() {
 
         now_sensor_data = read_data_sensors();
         window_control(now_sensor_data.temperature);
-        pump_control(now_sensor_data.moisture1, now_sensor_data.moisture2);
+        pump_control(now_sensor_data.moisture1, now_sensor_data.moisture2, now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant);
         if (!in_menu) {
             display_data(update_status(), now_sensor_data.temperature, check_weather_condition(now_sensor_data.pressure), now_sensor_data.moisture1, now_sensor_data.moisture2,
                          now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant);
