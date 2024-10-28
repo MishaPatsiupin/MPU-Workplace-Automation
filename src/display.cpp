@@ -73,9 +73,14 @@ const char *debug_window_time[] = {
 // Display functions
 void display_data(int status, float temperature, int weather, int moisture1, int moisture2, int liquid_sensor_water,
                   int liquid_sensor_plant) {
+    DateTime now = rtc.now();
+    char date_time[17];
+    snprintf(date_time, sizeof(date_time), "%02d/%02d %02d:%02d", now.day(), now.month(), now.hour(), now.minute());
+
+
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("01/11 12:00");
+    lcd.print(date_time);
     lcd.setCursor(0, 1);
     lcd.print("STATUS: ");
     lcd.print(my_status[status]);
