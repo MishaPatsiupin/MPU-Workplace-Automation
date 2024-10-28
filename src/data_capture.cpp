@@ -335,3 +335,21 @@ int update_status() {
         return 0; // "wait"
     }
 }
+
+int check_weather_condition(float pressure) {
+    // Диапазоны давления (примерные значения, могут быть изменены)
+    const float cloudy_or_rainy_min = 710.0;
+    const float cloudy_or_rainy_max = 745.0;
+    const float sunny_min = 745.1;
+    const float sunny_max = 790.0;
+    Serial.println("Pressure: " + String(pressure));
+
+    if (pressure >= cloudy_or_rainy_min && pressure <= cloudy_or_rainy_max) {
+        return 1; // Облачно или дождь
+    } else if (pressure >= sunny_min && pressure <= sunny_max) {
+        return 0; // Солнечно
+    } else {
+        // Значение давления вне известных диапазонов
+        return -1; // Неизвестное состояние
+    }
+}

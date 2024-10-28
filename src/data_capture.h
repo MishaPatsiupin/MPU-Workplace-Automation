@@ -37,6 +37,7 @@ void pump_control(int moisture1, int moisture2);
 void start_pump();
 void stop_pump();
 int update_status();
+int check_weather_condition(float pressure);
 
 
 #endif //DATA_CAPTURE_H
