@@ -48,6 +48,7 @@ extern RTC_DS1307 rtc;
 extern ServoSmooth servo_window;
 extern EncButton eb;
 
+
 extern int pos;
 extern bool in_menu;
 extern int current_menu;
@@ -65,7 +66,6 @@ extern unsigned long last_pump_control_time;
 
 extern bool window_flag;
 extern unsigned long last_window_control_time;
-
 
 
 
