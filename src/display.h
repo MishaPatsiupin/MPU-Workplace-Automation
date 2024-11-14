@@ -1,54 +1,138 @@
+//Патюпин М.С. ГР250503 КП
+//Микропроцессорное устройство контроля параметров тепличного комбината
+
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include "globals.h"
+#include "globals.h"  // Подключение глобальных переменных
 
+// Структура для хранения настроек полива
 struct waterind_settings {
-    int type = -1; // 0 - auto, 1 - time
-    int max_control_value_auto = 0;
-    int time_s_auto = 0;
-    int time_s_time = 0;
-    int period_time = 0;
+    int type = -1;  // Тип полива: 0 - авто, 1 - по времени
+    int max_control_value_auto = 0;  // Максимальное значение контроля для авто режима
+    int time_s_auto = 0;  // Время полива в авто режиме
+    int time_s_time = 0;  // Время полива в режиме по времени
+    int period_time = 0;  // Период времени для режима по времени
 };
 
-extern waterind_settings waterind_settings;
+extern waterind_settings waterind_settings;  // Экземпляр структуры для хранения настроек полива
 
+// Структура для хранения настроек окна
 struct window_settings {
-    int type = -1; //0 - auto, 1 - time, 2 - mix
-    int low_temp_auto = 0;
-    int max_temp_auto = 0;
-    int time_time = 0;
-    int periud_time = 0;
+    int type = -1;  // Тип управления окном: 0 - авто, 1 - по времени, 2 - смешанный
+    int low_temp_auto = 0;  // Нижняя граница температуры для авто режима
+    int max_temp_auto = 0;  // Верхняя граница температуры для авто режима
+    int time_time = 0;  // Время открытия окна в режиме по времени
+    int periud_time = 0;  // Период времени для режима по времени
 };
 
-extern window_settings window_settings;
+extern window_settings window_settings;  // Экземпляр структуры для хранения настроек окна
 
+//Функция: отображение отладочной информации о влажности 1
+//Принимает: -
+//Возвращает: -
 void display_debug_moisture1();
+
+//Функция: отображение отладочной информации о влажности 2
+//Принимает: -
+//Возвращает: -
 void display_debug_moisture2();
+
+//Функция: отображение отладочной информации о поливе
+//Принимает: -
+//Возвращает: -
 void display_debug_watering();
+
+//Функция: отображение отладочной информации об окне
+//Принимает: -
+//Возвращает: -
 void display_debug_window();
+
+//Функция: обновление отладочной информации о влажности
+//Принимает: старую позицию
+//Возвращает: -
 void update_debug_moisture(int old_pos);
+
+//Функция: обновление отладочной информации о поливе
+//Принимает: -
+//Возвращает: -
 void update_debug_watering();
+
+//Функция: обновление отладочной информации об окне
+//Принимает: -
+//Возвращает: -
 void update_debug_window();
+
+//Функция: включение подсветки
+//Принимает: -
+//Возвращает: -
 void turn_on_backlight();
+
+//Функция: выключение подсветки
+//Принимает: -
+//Возвращает: -
 void turn_off_backlight();
+
+//Функция: обновление данных на дисплее
+//Принимает: позицию строки, строку
+//Возвращает: -
 void display_data_update(int string_pos, int string);
+
+//Функция: отображение данных на дисплее
+//Принимает: статус, температура, состояние погоды, влажность 1, влажность 2, состояние датчика воды, состояние датчика жидкости в растении
+//Возвращает: -
 void display_data(int status, float temperature, int weather, int moisture1, int moisture2, int liquid_sensor_water, int liquid_sensor_plant);
 
-extern void (*menu_functions[])();
+extern void (*menu_functions[])();  // Массив указателей на функции меню
 
-
+//Функция: обработка подсветки
+//Принимает: -
+//Возвращает: -
 void handle_backlight();
+
+//Функция: обработка навигации по меню
+//Принимает: -
+//Возвращает: -
 void handle_menu_navigation();
+
+//Функция: обработка изменения значений
+//Принимает: -
+//Возвращает: -
 void handle_value_adjustments();
+
+//Функция: обработка нажатия вправо для позиции 1
+//Принимает: -
+//Возвращает: -
 void handle_right_press_for_pos1();
+
+//Функция: обработка нажатия вправо для позиции 2
+//Принимает: -
+//Возвращает: -
 void handle_right_press_for_pos2();
+
+//Функция: обработка нажатия влево для позиции 2
+//Принимает: -
+//Возвращает: -
 void handle_left_press_for_pos2();
+
+//Функция: обработка нажатия вправо для позиции 3
+//Принимает: -
+//Возвращает: -
 void handle_right_press_for_pos3();
+
+//Функция: обработка нажатия влево для позиции 3
+//Принимает: -
+//Возвращает: -
 void handle_left_press_for_pos3();
 
+//Функция: измерение влажности воздуха
+//Принимает: номер пина
+//Возвращает: -
 void measure_air(int sensor_pin);
-void measure_water(int sensor_pin);
 
+//Функция: измерение влажности воды
+//Принимает: номер пина
+//Возвращает: -
+void measure_water(int sensor_pin);
 
 #endif // DISPLAY_H

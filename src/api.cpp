@@ -1,20 +1,19 @@
-#include "api.h"
-#include <WiFi.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
+//Патюпин М.С. ГР250503 КП
+//Микропроцессорное устройство контроля параметров тепличного комбината
 
-// Параметры Wi-Fi
+#include "api.h"
+
+// Параметры сети Wi-Fi
 const char* ssid = "AndroidAP4763";
 const char* password = "123456Bears";
 
+// Инициализация веб-сервера на порту 80
 WebServer server(80);
 
 // Инициализация NTP клиента
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 3 * 3600); // Часовой пояс +3
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 3 * 3600, 60000);
 
-
-// Функция для подключения к Wi-Fi
 void connectToWiFi() {
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
@@ -23,6 +22,8 @@ void connectToWiFi() {
     }
     Serial.println("Connected to WiFi");
 
+    delay(1000); // Задержка перед обновлением времени
+
     // Обновление времени и даты через NTP
     timeClient.begin();
     if (timeClient.update()) {
@@ -30,10 +31,10 @@ void connectToWiFi() {
         Serial.println("Time updated from NTP");
     } else {
         Serial.println("Failed to update time from NTP");
+        Serial.println("NTP Client Status: " + String(timeClient.getFormattedTime()));
     }
 }
 
-// Функция для получения текущего времени в формате ISO 8601
 String getCurrentTimeISO8601() {
     DateTime now = rtc.now();
     char buffer[20];
@@ -43,13 +44,12 @@ String getCurrentTimeISO8601() {
     return String(buffer);
 }
 
-// Функция для округления числа до двух знаков после запятой
 float roundToTwoDecimals(float value) {
     return round(value * 100.0) / 100.0;
 }
 
-// Обработчик для получения данных
 void handleGetData() {
+    Serial.println("Received request: /tepliza/data");
     DynamicJsonDocument doc(1024);
     doc["this_time"] = getCurrentTimeISO8601();
     doc["temperature"] = roundToTwoDecimals(now_sensor_data.temperature);
@@ -65,8 +65,8 @@ void handleGetData() {
     server.send(200, "application/json", response);
 }
 
-// Обработчик для получения состояния
 void handleGetState() {
+    Serial.println("Received request: /tepliza/state");
     DynamicJsonDocument doc(1024);
     doc["window_flag"] = window_flag;
     doc["water_pomp_flag"] = pump_flag;
@@ -76,8 +76,8 @@ void handleGetState() {
     server.send(200, "application/json", response);
 }
 
-// Обработчик для установки состояния помпы
 void handleSetPomp() {
+    Serial.println("Received request: /tepliza/set/pomp");
     if (server.hasArg("plain")) {
         DynamicJsonDocument doc(1024);
         deserializeJson(doc, server.arg("plain"));
@@ -97,8 +97,8 @@ void handleSetPomp() {
     }
 }
 
-// Обработчик для установки состояния вентиляции
 void handleSetVentilation() {
+    Serial.println("Received request: /tepliza/set/ventilation");
     if (server.hasArg("plain")) {
         DynamicJsonDocument doc(1024);
         deserializeJson(doc, server.arg("plain"));
@@ -114,8 +114,8 @@ void handleSetVentilation() {
     }
 }
 
-// Обработчик для получения данных для gradka
 void handleGetDataGradka() {
+    Serial.println("Received request: /gradka/data");
     DynamicJsonDocument doc(1024);
     doc["this_time"] = getCurrentTimeISO8601();
     doc["temperature"] = roundToTwoDecimals(now_sensor_data.temperature);
@@ -128,9 +128,11 @@ void handleGetDataGradka() {
     server.send(200, "application/json", response);
 }
 
-// Функция задачи для второго ядра
 void sendDataTask(void * parameter) {
+    // Подключение к Wi-Fi
     connectToWiFi();
+    Serial.print("API доступно по адресу: http://");
+    Serial.println(WiFi.localIP());
 
     server.on("/tepliza/data", HTTP_GET, handleGetData);
     server.on("/tepliza/state", HTTP_GET, handleGetState);
@@ -146,4 +148,3 @@ void sendDataTask(void * parameter) {
         delay(2);
     }
 }
-

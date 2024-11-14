@@ -1,3 +1,6 @@
+//Патюпин М.С. ГР250503 КП
+//Микропроцессорное устройство контроля параметров тепличного комбината
+
 #include "display.h"
 
 void (*menu_functions[])() = {
@@ -33,18 +36,18 @@ const char *type_watering[] = {
 const char *debug_watering[] = {
     "DEBUG WATERING: ",
     "type: ",
-    "", // Пустая строка для max %
-    "" // Пустая строка для time
+    "",
+    ""
 };
 
 const char *debug_watering_auto[] = {
-    "max %: ", // от большего из control_moisture1_value и control_moisture2_value до 100, шаг 5
-    "time: " // шаг 15
+    "max %: ",
+    "time: "
 };
 
 const char *debug_watering_time[] = {
-    "time: ", // шаг 15 c
-    "period: " // шаг 30 m
+    "time: ",
+    "period: "
 };
 
 const char *type_window[] = {
@@ -61,16 +64,16 @@ const char *debug_window[] = {
 };
 
 const char *debug_window_auto[] = {
-    "Low 'C: ", // от -40 до 50, шаг 5
-    "Max 'C: " // от -40 до 50, шаг 5
+    "Low 'C: ",
+    "Max 'C: "
 };
 
 const char *debug_window_time[] = {
-    "time: ", // шаг 5
-    "period: " // шаг 30
+    "time: ",
+    "period: "
 };
 
-// Display functions
+
 void display_data(int status, float temperature, int weather, int moisture1, int moisture2, int liquid_sensor_water,
                   int liquid_sensor_plant) {
     DateTime now = rtc.now();
@@ -104,21 +107,21 @@ void display_data(int status, float temperature, int weather, int moisture1, int
 void display_debug_moisture1() {
     lcd.clear();
     for (int i = 0; i < 4; i++) {
-        lcd.setCursor(1, i); // Отступ в 1 символ
-        lcd.print(debug_moisture1[i]); // Обычные строки
+        lcd.setCursor(1, i);
+        lcd.print(debug_moisture1[i]);
     }
-    lcd.setCursor(0, pos); // Указатель на первой колонке
-    lcd.print(">"); // Символ указателя
+    lcd.setCursor(0, pos);
+    lcd.print(">");
 }
 
 void display_debug_moisture2() {
     lcd.clear();
     for (int i = 0; i < 4; i++) {
-        lcd.setCursor(1, i); // Отступ в 1 символ
-        lcd.print(debug_moisture2[i]); // Обычные строки
+        lcd.setCursor(1, i);
+        lcd.print(debug_moisture2[i]);
     }
-    lcd.setCursor(0, pos); // Указатель на первой колонке
-    lcd.print(">"); // Символ указателя
+    lcd.setCursor(0, pos);
+    lcd.print(">");
 }
 
 void display_debug_watering() {
@@ -148,8 +151,8 @@ void display_debug_watering() {
         lcd.print(waterind_settings.period_time);
     }
 
-    lcd.setCursor(0, pos); // Указатель на первой колонке
-    lcd.print(">"); // Символ указателя
+    lcd.setCursor(0, pos);
+    lcd.print(">");
 }
 
 void display_debug_window() {
@@ -178,32 +181,27 @@ void display_debug_window() {
         lcd.print(window_settings.periud_time);
     }
 
-    lcd.setCursor(0, pos); // Указатель на первой колонке
-    lcd.print(">"); // Символ указателя
+    lcd.setCursor(0, pos);
+    lcd.print(">");
 }
 
-// Update functions
+
 void update_debug_moisture(int old_pos) {
-    // Удаляем указатель с предыдущей позиции
     lcd.setCursor(0, old_pos);
-    lcd.print(" "); // Затираем старую строку
+    lcd.print(" ");
 
-    // Обновляем новую позицию
+
     lcd.setCursor(0, pos);
-    lcd.print(">"); // Выделяем новую строку
+    lcd.print(">");
 
-    // Выводим текущее значение сбоку
-    lcd.setCursor(17, 3); // Колонка для значения
+
+    lcd.setCursor(17, 3);
     lcd.print("   ");
     lcd.setCursor(17, 3);
     if (current_menu == 0) {
         lcd.print(control_moisture1_value); // Для moisture1
     } else if (current_menu == 1) {
         lcd.print(control_moisture2_value); // Для moisture2
-    } else if (current_menu == 2) {
-        // Добавьте логику для отображения данных полива
-    } else if (current_menu == 3) {
-        // Добавьте логику для отображения данных окон
     }
 }
 
@@ -229,7 +227,7 @@ void update_debug_window() {
         debug_window[3] = debug_window_time[1];
     } else if (window_settings.type == 2) {
         // Mix
-        debug_window[2] = ""; // Add appropriate debug strings for mix type if needed
+        debug_window[2] = "";
         debug_window[3] = "";
     } else {
         debug_window[2] = "";
@@ -239,13 +237,13 @@ void update_debug_window() {
 }
 
 
-// Backlight functions
+
 void turn_on_backlight() {
-    lcd.backlight(); // Включаем подсветку
+    lcd.backlight();
 }
 
 void turn_off_backlight() {
-    lcd.noBacklight(); // Выключаем подсветку
+    lcd.noBacklight();
 }
 
 // Handle functions

@@ -1,14 +1,17 @@
+// Патюпин М.С. ГР250503 КП
+// Микропроцессорное устройство контроля параметров тепличного комбината
+
 #include "data_capture.h"
 
 void init_devices() {
-    //инциализация дисплея
+    // инициализация дисплея
     lcd.begin(20, 04);
     turn_off_backlight();
     lcd.createChar(0, custom_wind);
     lcd.createChar(1, custom_sun);
     lcd.createChar(2, grad);
 
-    //Инициализация датчика BME280
+    // Инициализация датчика BME280
     if (!bme.begin(MY_BME280_ADDRESS)) {
         Serial.println("Could not find BME280");
         lcd.clear();
@@ -21,24 +24,22 @@ void init_devices() {
     if (!rtc.begin()) {
         Serial.println("Could not find RTC");
         lcd.clear();
-        lcd.print("BME280 not found");
+        lcd.print("RTC not found");
     } else {
-        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         Serial.println("RTC initialized successfully");
     }
 
-    //Инициализация датчиков влажности почвы
+    // Инициализация датчиков влажности почвы
     pinMode(CS_1, INPUT);
     pinMode(CS_2, INPUT);
-    //Инициализация датчиков наличия жидкости
+    // Инициализация датчиков наличия жидкости
     pinMode(LIQUID_SENSOR_PLANT, INPUT);
     pinMode(LIQUID_SENSOR_WATER, INPUT);
 
-    //Инициализация устройств исполнителей
+    // Инициализация устройств исполнителей
     pinMode(WATER_PUMP, OUTPUT);
     servo_window.attach(WINDOW);
     servo_window.setSpeed(130); // ограничить скорость
-    servo_window.setAccel(0.1); // установить ускорение (разгон и торможение)
 }
 
 sensor_data read_data_sensors() {
@@ -73,7 +74,7 @@ int read_moisture(int pin) {
     int soil_moisture_percent = map(measured_val, (pin == CS_1) ? moisture1_air : moisture2_air,
                                     (pin == CS_1) ? moisture1_water : moisture2_water, 0, 100);
 
-    if (soil_moisture_percent < 0 or soil_moisture_percent > 100) {
+    if (soil_moisture_percent < 0 || soil_moisture_percent > 100) {
         Serial.print("Error moisture ");
         Serial.print(pin == CS_1 ? 1 : 2);
         Serial.print(" -> ");
@@ -95,7 +96,7 @@ void measure_air(int sensor_pin) {
     int measured_val = 0;
     int highest_val = 0;
     unsigned long previous_millis_air = 0;
-    const long interval_air = 500; // Интервал обновления в миллисекундах
+    const long interval_air = 500;
 
     for (int i = 0; i < 10; i++) {
         unsigned long current_millis = millis();
@@ -241,7 +242,7 @@ void window_control(float temp) {
                 }
             }
 
-            // Additional logic to keep the window open if the temperature is above max_temp_auto
+            // Дополнительная логика для удержания окна открытым, если температура выше max_temp_auto
             if (window_flag && temp > window_settings.max_temp_auto) {
                 Serial.println("Temperature above max_temp_auto, keeping window open");
                 window_open_due_to_temp = true;
@@ -332,13 +333,11 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
 }
 
 void start_pump() {
-    // Логика включения помпы
     digitalWrite(WATER_PUMP, HIGH);
     Serial.println("Pump is ON");
 }
 
 void stop_pump() {
-    // Логика выключения помпы
     digitalWrite(WATER_PUMP, LOW);
     Serial.println("Pump is OFF");
 }
@@ -356,7 +355,7 @@ int update_status() {
 }
 
 int check_weather_condition(float pressure) {
-    // Диапазоны давления (примерные значения, могут быть изменены)
+    // Диапазоны давления
     const float cloudy_or_rainy_min = 710.0;
     const float cloudy_or_rainy_max = 745.0;
     const float sunny_min = 745.1;
@@ -366,8 +365,6 @@ int check_weather_condition(float pressure) {
         return 1; // Облачно или дождь
     } else if (pressure >= sunny_min && pressure <= sunny_max) {
         return 0; // Солнечно
-    } else {
-        // Значение давления вне известных диапазонов
-        return -1; // Неизвестное состояние
     }
+    return 1;
 }
