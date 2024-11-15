@@ -150,8 +150,6 @@ void measure_water(int sensor_pin) {
     }
 }
 
-bool window_open_due_to_temp = false;
-
 void window_control(float temp) {
     unsigned long current_time = millis();
 
@@ -203,62 +201,18 @@ void window_control(float temp) {
             break;
         }
         case 2: {
-            Serial.println("Mode: Mix");
-            unsigned long time_time_ms = window_settings.time_time * 1000;
-            unsigned long periud_time_ms = window_settings.periud_time * 1000;
-
-            Serial.print("Time time (ms): ");
-            Serial.println(time_time_ms);
-            Serial.print("Period time (ms): ");
-            Serial.println(periud_time_ms);
-
-            if (window_flag) {
-                Serial.println("Window is currently open");
-                if (current_time - last_window_control_time >= time_time_ms) {
-                    Serial.println("Time to close the window");
-                    window_flag = false;
-                    window_open_due_to_temp = false;
-                    servo_window_control(false);
-                    last_window_control_time = current_time;
-                } else {
-                    Serial.println("Not yet time to close the window");
-                }
-            } else {
-                Serial.println("Window is currently closed");
-                if (temp > window_settings.max_temp_auto) {
-                    Serial.println("Temperature above max_temp_auto, opening window");
-                    window_flag = true;
-                    window_open_due_to_temp = true;
-                    servo_window_control(true);
-                    last_window_control_time = current_time;
-                } else if (current_time - last_window_control_time >= periud_time_ms) {
-                    Serial.println("Time to open the window");
-                    window_flag = true;
-                    window_open_due_to_temp = false;
-                    servo_window_control(true);
-                    last_window_control_time = current_time;
-                } else {
-                    Serial.println("Not yet time to open the window");
-                }
-            }
-
-            // Дополнительная логика для удержания окна открытым, если температура выше max_temp_auto
-            if (window_flag && temp > window_settings.max_temp_auto) {
-                Serial.println("Temperature above max_temp_auto, keeping window open");
-                window_open_due_to_temp = true;
-            } else if (window_open_due_to_temp && temp < window_settings.low_temp_auto) {
-                Serial.println("Temperature below low_temp_auto, closing window");
-                window_flag = false;
-                window_open_due_to_temp = false;
-                servo_window_control(false);
-                last_window_control_time = current_time;
-            }
+            Serial.println("Mode: off");
+            window_flag = false;
+            servo_window_control(false);
             break;
         }
     }
 }
 
 void servo_window_control(bool window_flag_local) {
+    if (window_flag == window_flag_local) {
+        return;
+    }
     servo_window.setTargetDeg(window_flag_local ? 0 : 270);
     Serial.println("Window state: " + String(window_flag_local ? "open" : "closed"));
 }
@@ -329,6 +283,13 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
             }
             break;
         }
+        case 2: {
+            Serial.println(" Waterind Mode: off");
+            pump_flag = false;
+            stop_pump();
+            break;
+        }
+
     }
 }
 

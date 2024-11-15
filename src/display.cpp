@@ -30,7 +30,8 @@ const char *debug_moisture2[] = {
 
 const char *type_watering[] = {
     "auto",
-    "time"
+    "time",
+    "off"
 };
 
 const char *debug_watering[] = {
@@ -53,7 +54,7 @@ const char *debug_watering_time[] = {
 const char *type_window[] = {
     "auto",
     "time",
-    "mix"
+    "off"
 };
 
 const char *debug_window[] = {
@@ -225,10 +226,6 @@ void update_debug_window() {
         // Time
         debug_window[2] = debug_window_time[0];
         debug_window[3] = debug_window_time[1];
-    } else if (window_settings.type == 2) {
-        // Mix
-        debug_window[2] = "";
-        debug_window[3] = "";
     } else {
         debug_window[2] = "";
         debug_window[3] = "";
