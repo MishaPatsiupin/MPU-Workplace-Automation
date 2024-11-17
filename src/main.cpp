@@ -25,6 +25,8 @@ void setup() {
     Wire.begin(MY_SDA_PIN, MY_SCL_PIN); // Инициализация шины I2C
     Serial.begin(115200); // Инициализация последовательного порта
     init_devices(); // Инициализация устройств
+    stop_pump();
+    servo_window_control(false, true);
 
     // Создание задачи для отправки данных по Wi-Fi на втором ядре
     xTaskCreatePinnedToCore(

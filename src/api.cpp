@@ -103,8 +103,9 @@ void handleSetVentilation() {
         DynamicJsonDocument doc(1024);
         deserializeJson(doc, server.arg("plain"));
         if (doc.containsKey("state")) {
-            window_flag = doc["state"];
-            servo_window_control(window_flag);
+            bool window_flag_local = doc["state"];
+            servo_window_control(window_flag_local);
+            window_flag = window_flag_local;
             server.send(200, "application/json", "{\"message\":\"Ventilation state updated\",\"new_state\":" + String(window_flag) + "}");
         } else {
             server.send(400, "application/json", "{\"error\":\"No state provided\"}");

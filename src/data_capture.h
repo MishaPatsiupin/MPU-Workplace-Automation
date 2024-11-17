@@ -68,7 +68,7 @@ int read_liquid_sensor_plant();
 // Функция: управление сервоприводом окна
 // Принимает: состояние окна
 // Возвращает: -
-void servo_window_control(bool window_flag_local);
+void servo_window_control(bool window_flag_local, bool init = false);
 
 // Функция: управление окном в зависимости от температуры
 // Принимает: температура

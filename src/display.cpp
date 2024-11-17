@@ -145,6 +145,7 @@ void display_debug_watering() {
         lcd.print(waterind_settings.time_s_time);
         Serial.print(waterind_settings.time_s_time);
     }
+
     lcd.setCursor(15, 3);
     if (waterind_settings.type == 0) {
         lcd.print(waterind_settings.time_s_auto);
@@ -303,7 +304,7 @@ void handle_value_adjustments() {
         }
     }
 
-    if (eb.timeout(10000)) {
+    if (eb.timeout(10000) or eb.clicks == 3) {
         turn_off_backlight();
         in_menu = false;
     }
@@ -321,8 +322,8 @@ void handle_right_press_for_pos1() {
             measure_air(CS_2);
             break;
         case 2:
-            if (waterind_settings.type == 0 || waterind_settings.type == -1) waterind_settings.type = 1;
-            else if (waterind_settings.type == 1) waterind_settings.type = 0;
+            waterind_settings.type += 1;
+        if (waterind_settings.type == 3) waterind_settings.type = 0;
             update_debug_watering();
             break;
         case 3:

@@ -158,12 +158,14 @@ void window_control(float temp) {
             Serial.println("Mode: Auto");
             if (temp < window_settings.low_temp_auto) {
                 Serial.println("Temperature below low_temp_auto, closing window");
-                window_flag = false;
+
                 servo_window_control(false);
+                window_flag = false;
             } else if (temp > window_settings.max_temp_auto) {
                 Serial.println("Temperature above max_temp_auto, opening window");
-                window_flag = true;
+
                 servo_window_control(true);
+                window_flag = true;
             }
             break;
         }
@@ -181,8 +183,9 @@ void window_control(float temp) {
                 Serial.println("Window is currently open");
                 if (current_time - last_window_control_time >= time_time_ms) {
                     Serial.println("Time to close the window");
-                    window_flag = false;
+
                     servo_window_control(false);
+                    window_flag = false;
                     last_window_control_time = current_time;
                 } else {
                     Serial.println("Not yet time to close the window");
@@ -191,8 +194,8 @@ void window_control(float temp) {
                 Serial.println("Window is currently closed");
                 if (current_time - last_window_control_time >= periud_time_ms) {
                     Serial.println("Time to open the window");
-                    window_flag = true;
                     servo_window_control(true);
+                    window_flag = true;
                     last_window_control_time = current_time;
                 } else {
                     Serial.println("Not yet time to open the window");
@@ -202,14 +205,17 @@ void window_control(float temp) {
         }
         case 2: {
             Serial.println("Mode: off");
-            window_flag = false;
             servo_window_control(false);
+            window_flag = false;
             break;
         }
     }
 }
 
-void servo_window_control(bool window_flag_local) {
+void servo_window_control(bool window_flag_local, bool init) {
+    if (init) {
+        servo_window.setTargetDeg(270);
+    }
     if (window_flag == window_flag_local) {
         return;
     }
@@ -294,6 +300,16 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
 }
 
 void start_pump() {
+    // Проверка датчиков воды и потопа
+    if (now_sensor_data.liquid_sensor_water == 1) {
+        Serial.println("No water in tank, stopping pump");
+        return;
+    }
+
+    if (now_sensor_data.liquid_sensor_plant == 0) {
+        Serial.println("Flood detected, stopping pump");
+        return;
+    }
     digitalWrite(WATER_PUMP, HIGH);
     Serial.println("Pump is ON");
 }
