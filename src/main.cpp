@@ -45,6 +45,7 @@ void setup() {
 //Возвращает: -
 void loop() {
     eb.tick(); // Обработка событий энкодера
+    if (eb.clicks  == 2) show_status = true;
     servo_window.tick(); // Обработка событий сервопривода окна
 
     unsigned long current_millis = millis(); // Текущее время работы
@@ -57,10 +58,15 @@ void loop() {
         pump_control(now_sensor_data.moisture1, now_sensor_data.moisture2, now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant); // Управление помпой на основе данных с датчиков
 
         if (!in_menu) {
-            display_data(update_status(), now_sensor_data.temperature, check_weather_condition(now_sensor_data.pressure), now_sensor_data.moisture1, now_sensor_data.moisture2,
+            display_data(update_status(), now_sensor_data.temperature,
+                         check_weather_condition(now_sensor_data.pressure), now_sensor_data.moisture1,
+                         now_sensor_data.moisture2,
                          now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant); // Обновление данных на дисплее
+            //функция отслеживающая статус подключения к сети
+            wifi_status();
         }
     }
+
 
     handle_backlight(); // Обновление подсветки дисплея
     handle_menu_navigation(); // Обработка навигации по меню

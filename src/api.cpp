@@ -3,9 +3,12 @@
 
 #include "api.h"
 
+
+
 // Параметры сети Wi-Fi
-const char* ssid = "AndroidAP4763";
-const char* password = "123456Bears";
+const char* ssid = "***";
+const char* password = "***";
+bool show_status = false;
 
 // Инициализация веб-сервера на порту 80
 WebServer server(80);
@@ -21,6 +24,11 @@ void connectToWiFi() {
         Serial.println("Connecting to WiFi...");
     }
     Serial.println("Connected to WiFi");
+    delay(1000);
+    if (!MDNS.begin("my_esp32")) {
+        Serial.println("Setting error mDNS");
+        return;
+    }
 
     delay(1000); // Задержка перед обновлением времени
 
@@ -55,8 +63,8 @@ void handleGetData() {
     doc["temperature"] = roundToTwoDecimals(now_sensor_data.temperature);
     doc["humidity"] = roundToTwoDecimals(now_sensor_data.humidity);
     doc["pressure"] = roundToTwoDecimals(now_sensor_data.pressure);
-    doc["moisture1"] = now_sensor_data.moisture1;
-    doc["moisture2"] = now_sensor_data.moisture2;
+    doc["moisture1"] = now_sensor_data.moisture1 > 0 ? now_sensor_data.moisture1 : 0;
+    doc["moisture2"] = now_sensor_data.moisture2 > 0 ? now_sensor_data.moisture2 : 0;
     doc["liquid_sensor_water"] = !(now_sensor_data.liquid_sensor_water > 0);
     doc["liquid_sensor_plant"] = !(now_sensor_data.liquid_sensor_plant > 0);
 
@@ -145,7 +153,31 @@ void sendDataTask(void * parameter) {
     Serial.println("HTTP server started");
 
     while (true) {
+    if (!WiFi.isConnected()) {
+    connectToWiFi();
+    }
+
         server.handleClient();
         delay(2);
     }
+}
+
+unsigned long display_start_time = 0; // Время начала отображения информации
+
+void wifi_status() {
+    // Проверка состояния кнопки энкодера
+    if (show_status) {
+        display_start_time = millis(); // Сохранение времени начала отображения
+        lcd.clear();
+
+        lcd.setCursor(0, 0);
+        if (WiFi.isConnected()) {
+            lcd.print("IP: ");
+            lcd.print(WiFi.localIP());
+        } else {
+            lcd.print("Connecting to WiFi..");
+        }
+
+    }
+    show_status = false;
 }

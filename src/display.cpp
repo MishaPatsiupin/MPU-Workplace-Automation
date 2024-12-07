@@ -90,8 +90,10 @@ void display_data(int status, float temperature, int weather, int moisture1, int
     lcd.print(my_status[status]);
     lcd.setCursor(0, 2);
     lcd.print("HUMIDITY: ");
+    if (moisture1 < 0) lcd.print("0"); else
     lcd.print(moisture1);
     lcd.print("_");
+    if (moisture2 < 0) lcd.print("0"); else
     lcd.print(moisture2);
     lcd.print("%");
     lcd.setCursor(0, 3);

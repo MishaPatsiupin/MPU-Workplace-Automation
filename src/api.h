@@ -10,6 +10,7 @@
 #include <ArduinoJson.h>
 // Подключение библиотеки для работы с WiFi
 #include <WiFi.h>
+#include <ESPmDNS.h>
 // Подключение библиотеки для работы с UDP
 #include <WiFiUdp.h>
 // Подключение библиотеки для работы с NTP клиентом
@@ -41,5 +42,8 @@ void handleSetVentilation();
 // Принимает: указатель на параметр
 // Возвращает: -
 void sendDataTask(void * parameter);
+
+extern bool show_status;
+void wifi_status();
 
 #endif //API_H
