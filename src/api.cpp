@@ -6,8 +6,8 @@
 
 
 // Параметры сети Wi-Fi
-const char* ssid = "AndroidAP4763";
-const char* password = "123456Bears";
+const char* ssid = "***";
+const char* password = "***";
 bool show_status = false;
 
 // Инициализация веб-сервера на порту 80
