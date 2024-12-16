@@ -249,11 +249,13 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
         case 0: { // Auto mode
             Serial.println("Mode: Auto");
             if (moisture1 < control_moisture1_value || moisture2 < control_moisture2_value) {
-                if (!pump_flag) {
-                    Serial.println("Moisture below control value, starting pump");
-                    pump_flag = true;
-                    last_pump_control_time = current_time;
-                    start_pump();
+                if (moisture1 < waterind_settings.max_control_value_auto && moisture2 < waterind_settings.max_control_value_auto) {
+                    if (!pump_flag) {
+                        Serial.println("Moisture below control value, starting pump");
+                        pump_flag = true;
+                        last_pump_control_time = current_time;
+                        start_pump();
+                    }
                 }
             }
 

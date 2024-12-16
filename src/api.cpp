@@ -6,8 +6,8 @@
 
 
 // Параметры сети Wi-Fi
-const char* ssid = "***";
-const char* password = "***";
+const char* ssid = "AndroidAP4763";
+const char* password = "123456Bears";
 bool show_status = false;
 
 // Инициализация веб-сервера на порту 80
@@ -19,9 +19,10 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 3 * 3600, 60000);
 
 void connectToWiFi() {
     WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
+    if (WiFi.status() != WL_CONNECTED) {
         delay(1000);
         Serial.println("Connecting to WiFi...");
+        WiFi.begin(ssid, password);
     }
     Serial.println("Connected to WiFi");
     delay(1000);
@@ -153,9 +154,10 @@ void sendDataTask(void * parameter) {
     Serial.println("HTTP server started");
 
     while (true) {
-    if (!WiFi.isConnected()) {
-    connectToWiFi();
-    }
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("WiFi disconnected, reconnecting...");
+            connectToWiFi();
+        }
 
         server.handleClient();
         delay(2);
