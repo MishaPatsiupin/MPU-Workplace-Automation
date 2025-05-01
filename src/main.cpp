@@ -18,6 +18,9 @@ struct window_settings window_settings;
 // Структура для хранения настроек полива
 struct waterind_settings waterind_settings;
 
+// Структура для хранения старых данных
+struct old_data old_data;
+
 // Структура для хранения данных с датчиков
 sensor_data now_sensor_data;
 

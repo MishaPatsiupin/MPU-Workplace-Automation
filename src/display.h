@@ -28,6 +28,18 @@ struct window_settings {
 
 extern window_settings window_settings;  // Экземпляр структуры для хранения настроек окна
 
+struct old_data {
+    char date_time[17];
+    int status;
+    float temperature;
+    int weather;
+    int moisture1;
+    int moisture2;
+    int liquid_sensor_water;
+    int liquid_sensor_plant;
+};
+extern old_data old_data;  // Экземпляр структуры для хранения старых данных
+
 //Функция: отображение отладочной информации о влажности 1
 //Принимает: -
 //Возвращает: -

@@ -74,7 +74,7 @@ const char *debug_window_time[] = {
     "period: "
 };
 
-
+//плохая ерунда, надо возращаться к строкам и тогда модифицировать все выводящие функции (написать новую что принимает позиции и значения?), или же вводить доп флаги прошлого меню,
 void display_data(int status, float temperature, int weather, int moisture1, int moisture2, int liquid_sensor_water,
                   int liquid_sensor_plant) {
     DateTime now = rtc.now();
@@ -83,28 +83,78 @@ void display_data(int status, float temperature, int weather, int moisture1, int
 
 
     lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(date_time);
+
+    for (int i = 0; i < 17; i++) {
+        if (old_data.date_time[i] != date_time[i]) {
+            lcd.setCursor(i, 0);
+            lcd.print(" ");
+            lcd.setCursor(i, 0);
+            lcd.print(date_time[i]);
+            break;
+        }
+    }
+
     lcd.setCursor(0, 1);
     lcd.print("STATUS: ");
-    lcd.print(my_status[status]);
+    if (old_data.status != status) {
+        lcd.setCursor(8, 1);
+        lcd.print("       ");
+        lcd.setCursor(8, 1);
+        lcd.print(my_status[status]);
+    }
+
+
     lcd.setCursor(0, 2);
     lcd.print("HUMIDITY: ");
-    if (moisture1 < 0) lcd.print("0"); else
-    lcd.print(moisture1);
-    lcd.print("_");
-    if (moisture2 < 0) lcd.print("0"); else
-    lcd.print(moisture2);
+    if (old_data.moisture1 != moisture1 || old_data.moisture2 != moisture2) {
+        lcd.setCursor(10, 2);
+        lcd.print("     ");
+        lcd.setCursor(10, 2);
+
+        if (moisture1 < 0) lcd.print("0");
+        else
+            lcd.print(moisture1);
+        lcd.print("_");
+        if (moisture2 < 0) lcd.print("0");
+        else
+            lcd.print(moisture2);
+    }
     lcd.print("%");
+
+
     lcd.setCursor(0, 3);
     lcd.print("WATER plt-wtr: ");
-    lcd.print(liquid_sensor_plant ? "N" : "Y");
-    lcd.print("-");
-    lcd.print(liquid_sensor_water ? "N" : "Y");
-    lcd.setCursor(19, 0);
-    lcd.write(weather ? 0 : 1);
-    lcd.setCursor(15, 1);
-    lcd.print(temperature);
+    if (old_data.liquid_sensor_plant != liquid_sensor_plant || old_data.liquid_sensor_water != liquid_sensor_water) {
+        lcd.setCursor(15, 3);
+        lcd.print("  ");
+        lcd.setCursor(15, 3);
+        lcd.print(liquid_sensor_plant ? "N" : "Y");
+        lcd.print("-");
+        lcd.print(liquid_sensor_water ? "N" : "Y");
+    }
+
+    if (old_data.weather != weather) {
+        lcd.setCursor(19, 0);
+        lcd.print(" ");
+        lcd.setCursor(19, 0);
+        lcd.write(weather ? 0 : 1);
+    }
+
+    if (old_data.temperature != temperature) {
+        lcd.setCursor(15, 1);
+        lcd.print("   ");
+        lcd.setCursor(15, 1);
+        lcd.print(temperature);
+    }
+
+    strncpy(old_data.date_time, date_time, sizeof(old_data.date_time));
+    old_data.status = status;
+    old_data.temperature = temperature;
+    old_data.weather = weather;
+    old_data.moisture1 = moisture1;
+    old_data.moisture2 = moisture2;
+    old_data.liquid_sensor_water = liquid_sensor_water;
+    old_data.liquid_sensor_plant = liquid_sensor_plant;
 }
 
 void display_debug_moisture1() {
@@ -237,7 +287,6 @@ void update_debug_window() {
 }
 
 
-
 void turn_on_backlight() {
     lcd.backlight();
 }
@@ -325,7 +374,7 @@ void handle_right_press_for_pos1() {
             break;
         case 2:
             waterind_settings.type += 1;
-        if (waterind_settings.type == 3) waterind_settings.type = 0;
+            if (waterind_settings.type == 3) waterind_settings.type = 0;
             update_debug_watering();
             break;
         case 3:

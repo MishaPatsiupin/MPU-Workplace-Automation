@@ -18,29 +18,48 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 3 * 3600, 60000);
 
 void connectToWiFi() {
+    // Настройка точки доступа
+    WiFi.softAP(SSID, PASSWORD); // Создание точки доступа
+    IPAddress ap_local_ip(192, 168, 4, 1);
+    IPAddress ap_gateway(192, 168, 4, 1);
+    IPAddress ap_subnet(255, 255, 255, 0);
+    WiFi.softAPConfig(ap_local_ip, ap_gateway, ap_subnet); // Установка статического IP для точки доступа
+
+    Serial.println("Access Point started");
+    Serial.print("AP IP address: ");
+    Serial.println(WiFi.softAPIP());
+
+    // Подключение к домашней Wi-Fi сети
     WiFi.begin(ssid, password);
-    if (WiFi.status() != WL_CONNECTED) {
-        delay(1000);
+    unsigned long startAttemptTime = millis();
+
+    // Ожидание подключения к Wi-Fi сети
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
         Serial.println("Connecting to WiFi...");
-        WiFi.begin(ssid, password);
-    }
-    Serial.println("Connected to WiFi");
-    delay(1000);
-    if (!MDNS.begin("my_esp32")) {
-        Serial.println("Setting error mDNS");
-        return;
+        delay(1000);
     }
 
-    delay(1000); // Задержка перед обновлением времени
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("Connected to WiFi");
+        Serial.print("Station IP address: ");
+        Serial.println(WiFi.localIP());
 
-    // Обновление времени и даты через NTP
-    timeClient.begin();
-    if (timeClient.update()) {
-        rtc.adjust(DateTime(timeClient.getEpochTime()));
-        Serial.println("Time updated from NTP");
+        // Настройка mDNS
+        if (!MDNS.begin("my_esp32")) {
+            Serial.println("Setting error mDNS");
+            return;
+        }
+
+        // Обновление времени через NTP
+        timeClient.begin();
+        if (timeClient.update()) {
+            rtc.adjust(DateTime(timeClient.getEpochTime()));
+            Serial.println("Time updated from NTP");
+        } else {
+            Serial.println("Failed to update time from NTP");
+        }
     } else {
-        Serial.println("Failed to update time from NTP");
-        Serial.println("NTP Client Status: " + String(timeClient.getFormattedTime()));
+        Serial.println("Failed to connect to WiFi. Operating in AP mode only.");
     }
 }
 
@@ -160,6 +179,14 @@ void sendDataTask(void * parameter) {
         }
 
         server.handleClient();
+
+        // Log new client connections
+        WiFiClient client = server.available();
+        if (client) {
+            Serial.print("New client connected: ");
+            Serial.println(client.remoteIP());
+        }
+
         delay(2);
     }
 }
