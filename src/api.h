@@ -18,14 +18,6 @@
 // Подключение заголовочного файла для захвата данных
 #include "data_capture.h"
 
-#ifndef SSID
-#define SSID "MyESP32AP" // SSID точки доступа
-#endif
-
-#ifndef PASSWORD
-#define PASSWORD "12345678" // Пароль точки доступа
-#endif
-
 // Функция: подключение к WiFi
 // Принимает: -
 // Возвращает: -

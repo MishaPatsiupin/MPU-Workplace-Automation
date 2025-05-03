@@ -75,10 +75,10 @@ int read_moisture(int pin) {
                                     (pin == CS_1) ? moisture1_water : moisture2_water, 0, 100);
 
     if (soil_moisture_percent < 0 || soil_moisture_percent > 100) {
-        Serial.print("Error moisture ");
-        Serial.print(pin == CS_1 ? 1 : 2);
-        Serial.print(" -> ");
-        Serial.println(soil_moisture_percent);
+       // Serial.print("Error moisture ");
+       // Serial.print(pin == CS_1 ? 1 : 2);
+       // Serial.print(" -> ");
+       // Serial.println(soil_moisture_percent);
         soil_moisture_percent = -1;
     }
     return soil_moisture_percent;
@@ -204,7 +204,7 @@ void window_control(float temp) {
             break;
         }
         case 2: {
-            Serial.println("Mode: off");
+         //   Serial.println("Mode: off");
             servo_window_control(false);
             window_flag = false;
             break;
@@ -228,7 +228,7 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
 
     // Проверка датчиков воды и потопа
     if (water_sensor == 1) {
-        Serial.println("No water in tank, stopping pump");
+      //  Serial.println("No water in tank, stopping pump");
         if (pump_flag) {
             pump_flag = false;
             stop_pump();
@@ -237,7 +237,7 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
     }
 
     if (flood_sensor == 0) {
-        Serial.println("Flood detected, stopping pump");
+      //  Serial.println("Flood detected, stopping pump");
         if (pump_flag) {
             pump_flag = false;
             stop_pump();

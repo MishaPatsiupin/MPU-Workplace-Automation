@@ -2,64 +2,84 @@
 //Микропроцессорное устройство контроля параметров тепличного комбината
 
 #include "api.h"
+#include <Preferences.h>
+#include <esp_wifi.h>
+#include <HTTPClient.h>
+
+Preferences preferences;
+
+// Конфигурация
+const char* apSSID = "ESP32_AP";
+const char* apPassword = "password123";
+const IPAddress apIP(192, 168, 4, 1);
+
+// Статические IP для STA
+IPAddress localIP(192, 168, 1, 80);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 
 
-// Параметры сети Wi-Fi
-const char* ssid = "***";
-const char* password = "***";
 bool show_status = false;
 
 // Инициализация веб-сервера на порту 80
-WebServer server(80);
+WebServer server(8080);
 
 // Инициализация NTP клиента
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 3 * 3600, 60000);
 
-void connectToWiFi() {
-    // Настройка точки доступа
-    WiFi.softAP(SSID, PASSWORD); // Создание точки доступа
-    IPAddress ap_local_ip(192, 168, 4, 1);
-    IPAddress ap_gateway(192, 168, 4, 1);
-    IPAddress ap_subnet(255, 255, 255, 0);
-    WiFi.softAPConfig(ap_local_ip, ap_gateway, ap_subnet); // Установка статического IP для точки доступа
+bool serverStarted = false;
+void setupServer();
 
-    Serial.println("Access Point started");
-    Serial.print("AP IP address: ");
+// Настройка точки доступа
+void setupAccessPoint() {
+    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+    WiFi.softAP(apSSID, apPassword, 1, 0, 4);
+    Serial.println("Access Point настроен");
+    Serial.print("AP IP: ");
     Serial.println(WiFi.softAPIP());
+}
 
-    // Подключение к домашней Wi-Fi сети
-    WiFi.begin(ssid, password);
-    unsigned long startAttemptTime = millis();
+void setupWiFiClient() {
+    preferences.putString("ssid", "AndroidAP4763");
+    preferences.putString("pass", "123456Bears");
+    String savedSSID = preferences.getString("ssid", "AndroidAP4763");
+    String savedPass = preferences.getString("pass", "123456Bears");
+//    Serial.print("Saved SSID: ");
+//    Serial.println(savedSSID);
+//    Serial.print("Saved Password: ");
+//    Serial.println(savedPass);
 
-    // Ожидание подключения к Wi-Fi сети
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
-        Serial.println("Connecting to WiFi...");
-        delay(1000);
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("Connected to WiFi");
-        Serial.print("Station IP address: ");
-        Serial.println(WiFi.localIP());
-
-        // Настройка mDNS
-        if (!MDNS.begin("my_esp32")) {
-            Serial.println("Setting error mDNS");
+    if (savedSSID.length() > 0) {
+        WiFi.begin(savedSSID.c_str(), savedPass.c_str());
+        if (WiFi.waitForConnectResult(5000) == WL_CONNECTED) {
+            Serial.println("Fast reconnect OK");
+            preferences.putString("ssid", WiFi.SSID());
+            preferences.putString("pass", WiFi.psk());
             return;
         }
+    }
 
-        // Обновление времени через NTP
-        timeClient.begin();
-        if (timeClient.update()) {
-            rtc.adjust(DateTime(timeClient.getEpochTime()));
-            Serial.println("Time updated from NTP");
-        } else {
-            Serial.println("Failed to update time from NTP");
-        }
+    // Fallback to default credentials if saved credentials fail
+    WiFi.begin("AndroidAP4763", "123456Bears");
+    if (WiFi.waitForConnectResult(5000) == WL_CONNECTED) {
+        preferences.putString("ssid", WiFi.SSID());
+        preferences.putString("pass", WiFi.psk());
     } else {
-        Serial.println("Failed to connect to WiFi. Operating in AP mode only.");
+        Serial.println("Failed to connect to WiFi");
+    }
+}
+
+static unsigned long lastExecutionTime = 0;
+void connectToWiFi() {
+    if (WiFi.status() != WL_CONNECTED) {
+        unsigned long currentTime = millis();
+        if (currentTime - lastExecutionTime >= 60000) { // 60000 ms = 1 minute
+            lastExecutionTime = currentTime;
+            setupWiFiClient();
+            setupServer();
+        }
     }
 }
 
@@ -157,42 +177,49 @@ void handleGetDataGradka() {
     server.send(200, "application/json", response);
 }
 
+void setupServer() {
+    if (WiFi.isConnected() && !serverStarted) {
+        Serial.print("API доступно по адресу: http://");
+        Serial.println(WiFi.localIP());
+
+        server.on("/tepliza/data", HTTP_GET, handleGetData);
+        server.on("/tepliza/state", HTTP_GET, handleGetState);
+        server.on("/tepliza/set/pomp", HTTP_POST, handleSetPomp);
+        server.on("/tepliza/set/ventilation", HTTP_POST, handleSetVentilation);
+        server.on("/gradka/data", HTTP_GET, handleGetDataGradka);
+
+        server.begin();
+        Serial.println("HTTP server started");
+        serverStarted = true;
+    } else {
+        Serial.println("WiFi не подключен. HTTP сервер не запущен.");
+        serverStarted = false;
+    }
+}
+
 void sendDataTask(void * parameter) {
-    // Подключение к Wi-Fi
-    connectToWiFi();
-    Serial.print("API доступно по адресу: http://");
-    Serial.println(WiFi.localIP());
 
-    server.on("/tepliza/data", HTTP_GET, handleGetData);
-    server.on("/tepliza/state", HTTP_GET, handleGetState);
-    server.on("/tepliza/set/pomp", HTTP_POST, handleSetPomp);
-    server.on("/tepliza/set/ventilation", HTTP_POST, handleSetVentilation);
-    server.on("/gradka/data", HTTP_GET, handleGetDataGradka);
+    setupAccessPoint();
+    //setupServer();
 
-    server.begin();
-    Serial.println("HTTP server started");
 
-    while (true) {
-        if (WiFi.status() != WL_CONNECTED) {
-            Serial.println("WiFi disconnected, reconnecting...");
-            connectToWiFi();
-        }
 
+    while (true) {//loop
+
+        //---для предоставления состояния к мобильному приложению
+        connectToWiFi();
+        
         server.handleClient();
+        //***
 
-        // Log new client connections
-        WiFiClient client = server.available();
-        if (client) {
-            Serial.print("New client connected: ");
-            Serial.println(client.remoteIP());
-        }
+
 
         delay(2);
     }
 }
 
-unsigned long display_start_time = 0; // Время начала отображения информации
 
+unsigned long display_start_time = 0; // Время начала отображения информации
 void wifi_status() {
     // Проверка состояния кнопки энкодера
     if (show_status) {
