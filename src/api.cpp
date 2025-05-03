@@ -235,6 +235,25 @@ String sendHttpRequest(const String& url) {
     return response;
   }
 
+esp32_c3_supermini_data read_http_c3_supermini(){
+    esp32_c3_supermini_data data;
+    String response = sendHttpRequest("http://192.168.4.2:80/data");
+    if (response != "-1") {
+        DynamicJsonDocument doc(1024);
+        deserializeJson(doc, response);
+        data.moisture1 = doc["soil1"];
+        data.moisture2 = doc["soil2"];
+        data.liquid_sensor_plant = doc["water"];
+        return data;
+    } else {
+        data.moisture1 = -1;
+        data.moisture2 = -1;
+        data.liquid_sensor_plant = -1;
+        return data;
+    } 
+    
+}
+
 int read_moisture_number(int number){
  String response = sendHttpRequest("http://192.168.4.2:80/data");
  //Serial.println("Response esp32-c3-supermini: " + response);
@@ -251,7 +270,7 @@ int read_moisture_number(int number){
 }
     return -1; 
 }
-
+/*
 int read_liquid_sensor_plan_api(){
     String response = sendHttpRequest("http://192.168.4.2:80/data");
     //Serial.println("Response esp32-c3-supermini: " + response);
@@ -262,6 +281,43 @@ int read_liquid_sensor_plan_api(){
        return water; 
     }
     return -1;
+}
+*/
+
+bool send_start_pomp() {
+    String response = sendHttpRequest("http://192.168.4.3:80/state/on");
+    HTTPClient http;
+
+    // Проверяем HTTP-код ответа
+    if (http.GET() == HTTP_CODE_OK) { // HTTP_CODE_OK = 200
+        Serial.println("Pump started successfully");
+        Serial.print("Response: ");
+        Serial.println(response); // Выводим ответ для проверки
+        return true; // Успешный ответ
+    } else {
+        Serial.println("Failed to start pump");
+        Serial.print("Response: ");
+        Serial.println(response); // Выводим ответ для диагностики
+        return false; // Ошибка
+    }
+}
+
+bool send_stop_pomp() {
+    String response = sendHttpRequest("http://192.168.4.3:80/state/off");
+    HTTPClient http;
+
+    // Проверяем HTTP-код ответа
+    if (http.GET() == HTTP_CODE_OK) { // HTTP_CODE_OK = 200
+        Serial.println("Pump stop successfully");
+        Serial.print("Response: ");
+        Serial.println(response); // Выводим ответ для проверки
+        return true; // Успешный ответ
+    } else {
+        Serial.println("Failed to stop pump");
+        Serial.print("Response: ");
+        Serial.println(response); // Выводим ответ для диагностики
+        return false; // Ошибка
+    }
 }
 
 void sendDataTask(void * parameter) {

@@ -39,17 +39,23 @@ void init_devices() {
     servo_window.setSpeed(130); // ограничить скорость
 }
 
+// Функция: считывание данных с датчиков
 sensor_data read_data_sensors() {
+    //Опредление заполняемой структуры
     sensor_data data{};
+    //Чтение по i2c
     data.temperature = read_temperature();
     data.humidity = read_humidity();
     data.pressure = read_pressure();
 
-    data.moisture1 = read_moisture(1);
-    data.moisture2 = read_moisture(2);
-
     data.liquid_sensor_water = read_liquid_sensor_water();
-    data.liquid_sensor_plant = read_liquid_sensor_plant();
+
+    //чтение по http с esp32-c3-supermini(земля)
+    esp32_c3_supermini_data data_from_esp32_c3_supermini = read_http_c3_supermini();
+    data.moisture1 = read_moisture(1, data_from_esp32_c3_supermini.moisture1);
+    data.moisture2 = read_moisture(2, data_from_esp32_c3_supermini.moisture2);
+    data.liquid_sensor_plant = data_from_esp32_c3_supermini.liquid_sensor_plant;
+    
 
     return data;
 }
@@ -75,8 +81,8 @@ int _constrain(int value, int min_val, int max_val) {
     return (value < min_val) ? min_val : ((value > max_val) ? max_val : value);
 }
 
-int read_moisture(int pin) {
-    int measured_val = read_moisture_number(pin);
+int read_moisture(int pin, int rawValue) {
+    int measured_val = rawValue;
     
     // Инвертированные диапазоны для датчиков
     int soil_moisture_percent;
@@ -122,10 +128,6 @@ int read_moisture(int pin) {
 
 int read_liquid_sensor_water() {
     return digitalRead(LIQUID_SENSOR_WATER);
-}
-
-int read_liquid_sensor_plant() {
-    return read_liquid_sensor_plan_api();
 }
 
 void measure_air(int sensor_pin) {
@@ -352,12 +354,13 @@ void start_pump() {
         Serial.println("Flood detected, stopping pump");
         return;
     }
-    digitalWrite(WATER_PUMP, HIGH);
+    send_start_pomp();
     Serial.println("Pump is ON");
 }
 
 void stop_pump() {
-    digitalWrite(WATER_PUMP, LOW);
+    //delay(100); 
+    send_stop_pomp();
     Serial.println("Pump is OFF");
 }
 

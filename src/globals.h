@@ -78,9 +78,15 @@ extern unsigned long last_pump_control_time; // Время последнего 
 extern bool window_flag; // Флаг состояния окна
 extern unsigned long last_window_control_time; // Время последнего управления окном
 
-
+typedef struct{
+    int moisture1;
+    int moisture2;
+    int liquid_sensor_plant;
+} esp32_c3_supermini_data;
 
 //Функции Wi-Fi
+esp32_c3_supermini_data read_http_c3_supermini();
 int read_moisture_number(int number);
-int read_liquid_sensor_plan_api();
+bool send_start_pomp();
+bool send_stop_pomp();
 #endif //GLOBALS_H
