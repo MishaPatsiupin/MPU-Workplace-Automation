@@ -78,20 +78,22 @@ const char *debug_window_time[] = {
 void display_data(int status, float temperature, int weather, int moisture1, int moisture2, int liquid_sensor_water,
                   int liquid_sensor_plant) {
     DateTime now = rtc.now();
-    char date_time[17];
+    char date_time[12];
     snprintf(date_time, sizeof(date_time), "%02d/%02d %02d:%02d", now.day(), now.month(), now.hour(), now.minute());
-
+    //Serial.print(date_time);
+    //Serial.println(rtc.dateTimeToString(now));
 
     lcd.clear();
 
-    for (int i = 0; i < 17; i++) {
-        if (old_data.date_time[i] != date_time[i]) {
+    for (int i = 0; i < 12; i++) {
+        //if (old_data.date_time[i] != date_time[i]) {
             lcd.setCursor(i, 0);
             lcd.print(" ");
             lcd.setCursor(i, 0);
             lcd.print(date_time[i]);
-            break;
-        }
+          //  Serial.print(date_time[i]);
+            //break;
+        //}
     }
 
     lcd.setCursor(0, 1);
@@ -366,11 +368,11 @@ void handle_right_press_for_pos1() {
     switch (current_menu) {
         case 0:
             Serial.println("Calling function for correction 1 air");
-            measure_air(CS_1);
+            measure_air(1);
             break;
         case 1:
             Serial.println("Calling function for correction 2 air");
-            measure_air(CS_2);
+            measure_air(2);
             break;
         case 2:
             waterind_settings.type += 1;
@@ -390,11 +392,11 @@ void handle_right_press_for_pos2() {
     switch (current_menu) {
         case 0:
             Serial.println("Calling function for correction 1 water");
-            measure_water(CS_1);
+            measure_water(1);
             break;
         case 1:
             Serial.println("Calling function for correction 2 water");
-            measure_water(CS_2);
+            measure_water(2);
             break;
         case 2:
             if (waterind_settings.type == 0) {

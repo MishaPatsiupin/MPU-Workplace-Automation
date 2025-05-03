@@ -25,9 +25,27 @@ bool show_status = false;
 // Инициализация веб-сервера на порту 80
 WebServer server(8080);
 
+WebServer serverAP(80); // Веб-сервер для точки доступа
+
 // Инициализация NTP клиента
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 3 * 3600, 60000);
+
+void updateRTCFromNTP() {
+    if (WiFi.isConnected()) {
+        Serial.println("Обновление времени на RTC через NTP...");
+        timeClient.update();
+        unsigned long epochTime = timeClient.getEpochTime();
+        if (epochTime > 0) {
+            rtc.adjust(DateTime(epochTime));
+            Serial.println("Время успешно обновлено на RTC.");
+        } else {
+            Serial.println("Ошибка: не удалось получить время через NTP.");
+        }
+    } else {
+        Serial.println("WiFi не подключен. Невозможно обновить время на RTC.");
+    }
+}
 
 bool serverStarted = false;
 void setupServer();
@@ -46,10 +64,6 @@ void setupWiFiClient() {
     preferences.putString("pass", "123456Bears");
     String savedSSID = preferences.getString("ssid", "AndroidAP4763");
     String savedPass = preferences.getString("pass", "123456Bears");
-//    Serial.print("Saved SSID: ");
-//    Serial.println(savedSSID);
-//    Serial.print("Saved Password: ");
-//    Serial.println(savedPass);
 
     if (savedSSID.length() > 0) {
         WiFi.begin(savedSSID.c_str(), savedPass.c_str());
@@ -75,10 +89,11 @@ static unsigned long lastExecutionTime = 0;
 void connectToWiFi() {
     if (WiFi.status() != WL_CONNECTED) {
         unsigned long currentTime = millis();
-        if (currentTime - lastExecutionTime >= 60000) { // 60000 ms = 1 minute
+        if (currentTime - lastExecutionTime >= 30000) { // 60000 ms = 1 minute
             lastExecutionTime = currentTime;
             setupWiFiClient();
             setupServer();
+            updateRTCFromNTP();
         }
     }
 }
@@ -197,18 +212,52 @@ void setupServer() {
     }
 }
 
+String sendHttpRequest(const String& url) {
+    HTTPClient http;
+    //Serial.print("Sending request to: ");
+    //Serial.println(url);
+    String response = "";
+    if (http.begin(url)) {
+      int httpCode = http.GET();
+      if (httpCode == HTTP_CODE_OK) {
+        Serial.print("Response: ");
+        response = http.getString();
+        Serial.println(response);
+      } else {
+        Serial.print("HTTP error: ");
+        response = http.getString();
+        Serial.println(response);
+      }
+      http.end();
+    } else {
+      Serial.println("Failed to connect to server");
+    }
+    return response;
+  }
+
+int read_moisture_number(int number){
+ String response = sendHttpRequest("http://192.168.4.2:80/data");
+ //Serial.println("Response esp32-c3-supermini: " + response);
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, response);
+    int moisture1 = doc["soil1"];
+    int moisture2 = doc["soil2"];
+    if (number == 1) {
+        return moisture1;
+    } else if (number == 2) {
+        return moisture2;
+    }
+    return -1; 
+}
+
 void sendDataTask(void * parameter) {
 
     setupAccessPoint();
     //setupServer();
 
-
-
     while (true) {//loop
-
         //---для предоставления состояния к мобильному приложению
         connectToWiFi();
-        
         server.handleClient();
         //***
 

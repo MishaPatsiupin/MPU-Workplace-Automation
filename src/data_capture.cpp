@@ -29,9 +29,6 @@ void init_devices() {
         Serial.println("RTC initialized successfully");
     }
 
-    // Инициализация датчиков влажности почвы
-    pinMode(CS_1, INPUT);
-    pinMode(CS_2, INPUT);
     // Инициализация датчиков наличия жидкости
     pinMode(LIQUID_SENSOR_PLANT, INPUT);
     pinMode(LIQUID_SENSOR_WATER, INPUT);
@@ -48,8 +45,8 @@ sensor_data read_data_sensors() {
     data.humidity = read_humidity();
     data.pressure = read_pressure();
 
-    data.moisture1 = read_moisture(CS_1);
-    data.moisture2 = read_moisture(CS_2);
+    data.moisture1 = read_moisture(1);
+    data.moisture2 = read_moisture(2);
 
     data.liquid_sensor_water = read_liquid_sensor_water();
     data.liquid_sensor_plant = read_liquid_sensor_plant();
@@ -69,20 +66,58 @@ float read_pressure() {
     return (bme.readPressure() / 100.0F) * 0.75006F;
 }
 
-int read_moisture(int pin) {
-    int measured_val = analogRead(pin);
-    int soil_moisture_percent = map(measured_val, (pin == CS_1) ? moisture1_air : moisture2_air,
-                                    (pin == CS_1) ? moisture1_water : moisture2_water, 0, 100);
 
-    if (soil_moisture_percent < 0 || soil_moisture_percent > 100) {
-       // Serial.print("Error moisture ");
-       // Serial.print(pin == CS_1 ? 1 : 2);
-       // Serial.print(" -> ");
-       // Serial.println(soil_moisture_percent);
-        soil_moisture_percent = -1;
+int _map(int x, int in_min, int in_max, int out_min, int out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+int _constrain(int value, int min_val, int max_val) {
+    return (value < min_val) ? min_val : ((value > max_val) ? max_val : value);
+}
+
+int read_moisture(int pin) {
+    int measured_val = read_moisture_number(pin);
+    
+    // Инвертированные диапазоны для датчиков
+    int soil_moisture_percent;
+    if(pin == 1) {
+        // Для датчика 1: высокое значение = сухо, низкое = мокро
+        soil_moisture_percent = _map(
+            measured_val, 
+            moisture1_air,    // Максимальное значение (сухо)
+            moisture1_water,  // Минимальное значение (мокро)
+            0, 
+            100
+        );
+    } else {
+        // Для датчика 2: аналогичная логика
+        soil_moisture_percent = _map(
+            measured_val, 
+            moisture2_air, 
+            moisture2_water, 
+            0, 
+            100
+        );
     }
+    
+    soil_moisture_percent = _constrain(soil_moisture_percent, 0, 100);
+    
+    // Отладочный вывод
+    Serial.print("Sensor");
+    Serial.print(pin);
+    Serial.print(": raw=");
+    Serial.print(measured_val);
+    Serial.print(" air=");
+    Serial.print((pin == 1) ? moisture1_air : moisture2_air);
+    Serial.print(" water=");
+    Serial.print((pin == 1) ? moisture1_water : moisture2_water);
+    Serial.print(" → ");
+    Serial.print(soil_moisture_percent);
+    Serial.println("%");
+    
     return soil_moisture_percent;
 }
+
 
 int read_liquid_sensor_water() {
     return digitalRead(LIQUID_SENSOR_WATER);
@@ -102,9 +137,11 @@ void measure_air(int sensor_pin) {
         unsigned long current_millis = millis();
         if (current_millis - previous_millis_air >= interval_air) {
             previous_millis_air = current_millis;
-            measured_val = analogRead(sensor_pin);
-            if (measured_val > highest_val) {
-                highest_val = measured_val;
+            measured_val = read_moisture_number(sensor_pin);
+            if (measured_val != -1){
+                if (measured_val > highest_val) {
+                    highest_val = measured_val;
+                }
             }
         }
     }
@@ -112,10 +149,10 @@ void measure_air(int sensor_pin) {
     Serial.println(highest_val);
 
     switch (sensor_pin) {
-        case CS_1:
+        case 1:
             moisture1_air = highest_val;
             break;
-        case CS_2:
+        case 2:
             moisture2_air = highest_val;
             break;
     }
@@ -125,15 +162,17 @@ void measure_water(int sensor_pin) {
     int lowest_val = 30000;
     int measured_val = 0;
     unsigned long previous_millis_water = 0;
-    const long interval_water = 500; // Интервал обновления в миллисекундах
+    const long interval_water = 900; // Интервал обновления в миллисекундах
 
     for (int i = 0; i < 10; i++) {
         unsigned long current_millis = millis();
         if (current_millis - previous_millis_water >= interval_water) {
             previous_millis_water = current_millis;
-            measured_val = analogRead(sensor_pin);
-            if (measured_val < lowest_val) {
+            measured_val = read_moisture_number(sensor_pin);
+            if (measured_val != -1){    
+                if (measured_val < lowest_val) {
                 lowest_val = measured_val;
+                }
             }
         }
     }
@@ -141,10 +180,10 @@ void measure_water(int sensor_pin) {
     Serial.println(lowest_val);
 
     switch (sensor_pin) {
-        case CS_1:
+        case 1:
             moisture1_water = lowest_val;
             break;
-        case CS_2:
+        case 2:
             moisture2_water = lowest_val;
             break;
     }
