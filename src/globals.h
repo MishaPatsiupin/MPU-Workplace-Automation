@@ -82,4 +82,5 @@ extern unsigned long last_window_control_time; // Время последнег�
 
 //Функции Wi-Fi
 int read_moisture_number(int number);
+int read_liquid_sensor_plan_api();
 #endif //GLOBALS_H

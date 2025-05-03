@@ -216,7 +216,7 @@ String sendHttpRequest(const String& url) {
     HTTPClient http;
     //Serial.print("Sending request to: ");
     //Serial.println(url);
-    String response = "";
+    String response = "-1";
     if (http.begin(url)) {
       int httpCode = http.GET();
       if (httpCode == HTTP_CODE_OK) {
@@ -238,6 +238,7 @@ String sendHttpRequest(const String& url) {
 int read_moisture_number(int number){
  String response = sendHttpRequest("http://192.168.4.2:80/data");
  //Serial.println("Response esp32-c3-supermini: " + response);
+ if (response != "-1") {
     DynamicJsonDocument doc(1024);
     deserializeJson(doc, response);
     int moisture1 = doc["soil1"];
@@ -247,7 +248,20 @@ int read_moisture_number(int number){
     } else if (number == 2) {
         return moisture2;
     }
+}
     return -1; 
+}
+
+int read_liquid_sensor_plan_api(){
+    String response = sendHttpRequest("http://192.168.4.2:80/data");
+    //Serial.println("Response esp32-c3-supermini: " + response);
+    if (response != "-1") {
+       DynamicJsonDocument doc(1024);
+       deserializeJson(doc, response);
+       int water = doc["water"];
+       return water; 
+    }
+    return -1;
 }
 
 void sendDataTask(void * parameter) {

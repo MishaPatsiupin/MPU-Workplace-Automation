@@ -98,17 +98,17 @@ void display_data(int status, float temperature, int weather, int moisture1, int
 
     lcd.setCursor(0, 1);
     lcd.print("STATUS: ");
-    if (old_data.status != status) {
+   // if (old_data.status != status) {
         lcd.setCursor(8, 1);
         lcd.print("       ");
         lcd.setCursor(8, 1);
         lcd.print(my_status[status]);
-    }
+   // }
 
 
     lcd.setCursor(0, 2);
     lcd.print("HUMIDITY: ");
-    if (old_data.moisture1 != moisture1 || old_data.moisture2 != moisture2) {
+    //if (old_data.moisture1 != moisture1 || old_data.moisture2 != moisture2) {
         lcd.setCursor(10, 2);
         lcd.print("     ");
         lcd.setCursor(10, 2);
@@ -120,34 +120,34 @@ void display_data(int status, float temperature, int weather, int moisture1, int
         if (moisture2 < 0) lcd.print("0");
         else
             lcd.print(moisture2);
-    }
+    //}
     lcd.print("%");
 
 
     lcd.setCursor(0, 3);
     lcd.print("WATER plt-wtr: ");
-    if (old_data.liquid_sensor_plant != liquid_sensor_plant || old_data.liquid_sensor_water != liquid_sensor_water) {
+    //if (old_data.liquid_sensor_plant != liquid_sensor_plant || old_data.liquid_sensor_water != liquid_sensor_water) {
         lcd.setCursor(15, 3);
         lcd.print("  ");
         lcd.setCursor(15, 3);
         lcd.print(liquid_sensor_plant ? "N" : "Y");
         lcd.print("-");
         lcd.print(liquid_sensor_water ? "N" : "Y");
-    }
+   // }
 
-    if (old_data.weather != weather) {
+   // if (old_data.weather != weather) {
         lcd.setCursor(19, 0);
         lcd.print(" ");
         lcd.setCursor(19, 0);
         lcd.write(weather ? 0 : 1);
-    }
+  // }
 
-    if (old_data.temperature != temperature) {
+  //  if (old_data.temperature != temperature) {
         lcd.setCursor(15, 1);
         lcd.print("   ");
         lcd.setCursor(15, 1);
         lcd.print(temperature);
-    }
+   // }
 
     strncpy(old_data.date_time, date_time, sizeof(old_data.date_time));
     old_data.status = status;

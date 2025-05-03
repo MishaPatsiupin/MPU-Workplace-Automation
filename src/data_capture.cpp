@@ -103,6 +103,7 @@ int read_moisture(int pin) {
     soil_moisture_percent = _constrain(soil_moisture_percent, 0, 100);
     
     // Отладочный вывод
+    /*
     Serial.print("Sensor");
     Serial.print(pin);
     Serial.print(": raw=");
@@ -114,7 +115,7 @@ int read_moisture(int pin) {
     Serial.print(" → ");
     Serial.print(soil_moisture_percent);
     Serial.println("%");
-    
+    */
     return soil_moisture_percent;
 }
 
@@ -124,7 +125,7 @@ int read_liquid_sensor_water() {
 }
 
 int read_liquid_sensor_plant() {
-    return digitalRead(LIQUID_SENSOR_PLANT);
+    return read_liquid_sensor_plan_api();
 }
 
 void measure_air(int sensor_pin) {
