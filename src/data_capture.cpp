@@ -216,7 +216,7 @@ void update_relay_flag() {
     //Serial.print(now.hour());
     //Serial.print(":");
     //Serial.println(now.minute());
-    //Serial.print("Relay flag: ");
+    //Serial.print("Relay flag(update_relay_flag): ");
     //Serial.println(relay_settings.relay_flag ? "ON" : "OFF");
 }
 }
@@ -312,7 +312,7 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
             break;
         }
         case 2: {
-            Serial.println(" Waterind Mode: off");
+            //Serial.println(" Waterind Mode: off");
             stop_pump(false);
             pump_flag = false;
             break;

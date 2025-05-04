@@ -56,7 +56,7 @@ static unsigned long last_upd_relay_time = 0;
 //Возвращает: -
 void loop() {
     eb.tick(); // Обработка событий энкодера
-    if (eb.clicks  == 2) show_status = true;
+    if (eb.clicks  == 3) show_status = true;
 
     unsigned long current_millis = millis(); // Текущее время работы
 
@@ -81,7 +81,7 @@ void loop() {
         }
 
     }
-    if (current_millis - last_upd_relay_time >= 60000) {
+    if (current_millis - last_upd_relay_time >= 30000) {
         last_upd_relay_time = current_millis;
         update_relay_flag(); // Обновление состояния реле
     }

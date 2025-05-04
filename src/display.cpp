@@ -349,7 +349,7 @@ void handle_value_adjustments() {
         }
     }
 
-    if (eb.timeout(10000) or eb.clicks == 3) {
+    if (eb.timeout(10000) or eb.clicks == 2) {
         turn_off_backlight();
         in_menu = false;
     }
