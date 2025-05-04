@@ -15,18 +15,19 @@ struct waterind_settings {
     int period_time = 0;  // Период времени для режима по времени
 };
 
-extern waterind_settings waterind_settings;  // Экземпляр структуры для хранения настроек полива
+extern struct waterind_settings waterind_settings;  // Экземпляр структуры для хранения настроек полива
 
-// Структура для хранения настроек окна
-struct window_settings {
-    int type = -1;  // Тип управления окном: 0 - авто, 1 - по времени, 2 - смешанный
-    int low_temp_auto = 0;  // Нижняя граница температуры для авто режима
-    int max_temp_auto = 0;  // Верхняя граница температуры для авто режима
-    int time_time = 0;  // Время открытия окна в режиме по времени
-    int periud_time = 0;  // Период времени для режима по времени
+// Структура настроек освящения
+struct relay_settings {
+    int type = -1;  // Тип управления окном: 0 - отключено, 1 - по времени
+    int start_hour = 7;  // Час начала
+    int start_minute = 0;  // Минута начала
+    int end_hour = 8;  // Час конца
+    int end_minute = 0;  // Минута конца
+    bool relay_flag = false;  // Флаг состояния реле
 };
 
-extern window_settings window_settings;  // Экземпляр структуры для хранения настроек окна
+extern struct relay_settings relay_settings;  // Экземпляр структуры для хранения настроек окна
 
 struct old_data {
     char date_time[17];
@@ -38,7 +39,7 @@ struct old_data {
     int liquid_sensor_water;
     int liquid_sensor_plant;
 };
-extern old_data old_data;  // Экземпляр структуры для хранения старых данных
+extern struct old_data old_data;  // Экземпляр структуры для хранения старых данных
 
 //Функция: отображение отладочной информации о влажности 1
 //Принимает: -
@@ -58,7 +59,7 @@ void display_debug_watering();
 //Функция: отображение отладочной информации об окне
 //Принимает: -
 //Возвращает: -
-void display_debug_window();
+void display_debug_relay();
 
 //Функция: обновление отладочной информации о влажности
 //Принимает: старую позицию
@@ -73,7 +74,7 @@ void update_debug_watering();
 //Функция: обновление отладочной информации об окне
 //Принимает: -
 //Возвращает: -
-void update_debug_window();
+void update_debug_relay();
 
 //Функция: включение подсветки
 //Принимает: -
@@ -88,7 +89,7 @@ void turn_off_backlight();
 //Функция: обновление данных на дисплее
 //Принимает: позицию строки, строку
 //Возвращает: -
-void display_data_update(int string_pos, int string);
+void display_data_update(int string_pos, int string);//а где она
 
 //Функция: отображение данных на дисплее
 //Принимает: статус, температура, состояние погоды, влажность 1, влажность 2, состояние датчика воды, состояние датчика жидкости в растении
@@ -146,5 +147,7 @@ void measure_air(int sensor_pin);
 //Принимает: номер пина
 //Возвращает: -
 void measure_water(int sensor_pin);
+
+void update_relay_flag();
 
 #endif // DISPLAY_H

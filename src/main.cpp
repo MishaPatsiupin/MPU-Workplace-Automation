@@ -13,7 +13,7 @@
 #include "my_eeprom.h"
 
 // Структура для хранения настроек окна
-struct window_settings window_settings;
+struct relay_settings relay_settings;
 
 // Структура для хранения настроек полива
 struct waterind_settings waterind_settings;
@@ -32,7 +32,7 @@ void setup() {
     Wire.begin(MY_SDA_PIN, MY_SCL_PIN); // Инициализация шины I2C
     Serial.begin(115200); // Инициализация последовательного порта
     init_devices(); // Инициализация устройств
-    servo_window_control(false, true);
+    //relay_control(false);
 
     // Создание задачи для отправки данных по Wi-Fi на втором ядре
     xTaskCreatePinnedToCore(
@@ -48,6 +48,7 @@ void setup() {
     loadFromEEPROM();
 
 }
+unsigned long lastSaveTime = 0;
 
 //Функция: основной цикл программы
 //Принимает: -
@@ -55,7 +56,6 @@ void setup() {
 void loop() {
     eb.tick(); // Обработка событий энкодера
     if (eb.clicks  == 2) show_status = true;
-    servo_window.tick(); // Обработка событий сервопривода окна
 
     unsigned long current_millis = millis(); // Текущее время работы
 
@@ -63,7 +63,8 @@ void loop() {
         previous_millis = current_millis;
 
         now_sensor_data = read_data_sensors(); // Чтение данных с датчиков
-        window_control(now_sensor_data.temperature); // Управление окном на основе температуры
+        //window_control(now_sensor_data.temperature); // Управление окном на основе температуры
+        update_relay_flag();
         pump_control(now_sensor_data.moisture1, now_sensor_data.moisture2, now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant); // Управление помпой на основе данных с датчиков
 
         if (!in_menu) {
@@ -74,8 +75,11 @@ void loop() {
             //функция отслеживающая статус подключения к сети
             wifi_status();
         }
+        if (current_millis - lastSaveTime >= 60000) {
+            saveToEEPROM();
+            lastSaveTime = current_millis;
+        }
 
-        saveToEEPROM();
     }
 
 
@@ -95,7 +99,7 @@ void saveToEEPROM() {
     EEPROM.put(addr_moisture2_air, moisture2_air);
     EEPROM.put(addr_moisture2_water, moisture2_water);
     EEPROM.put(addr_waterind_settings, waterind_settings);
-    EEPROM.put(addr_window_settings, window_settings);
+    EEPROM.put(addr_relay_settings, relay_settings);
     EEPROM.commit();
 }
 
@@ -112,7 +116,7 @@ void loadFromEEPROM() {
         EEPROM.get(addr_moisture2_air, moisture2_air);
         EEPROM.get(addr_moisture2_water, moisture2_water);
         EEPROM.get(addr_waterind_settings, waterind_settings);
-        EEPROM.get(addr_window_settings, window_settings);
+        EEPROM.get(addr_relay_settings, relay_settings);
     }
     Serial.print("test_value: ");
     Serial.println(test_value);

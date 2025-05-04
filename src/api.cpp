@@ -131,7 +131,7 @@ void handleGetData() {
 void handleGetState() {
     Serial.println("Received request: /tepliza/state");
     DynamicJsonDocument doc(1024);
-    doc["window_flag"] = window_flag;
+    //doc["window_flag"] = window_flag;
     doc["water_pomp_flag"] = pump_flag;
 
     String response;
@@ -167,9 +167,9 @@ void handleSetVentilation() {
         deserializeJson(doc, server.arg("plain"));
         if (doc.containsKey("state")) {
             bool window_flag_local = doc["state"];
-            servo_window_control(window_flag_local);
-            window_flag = window_flag_local;
-            server.send(200, "application/json", "{\"message\":\"Ventilation state updated\",\"new_state\":" + String(window_flag) + "}");
+            relay_control(window_flag_local);
+           // window_flag = window_flag_local;
+           // server.send(200, "application/json", "{\"message\":\"Ventilation state updated\",\"new_state\":" + String(window_flag) + "}");
         } else {
             server.send(400, "application/json", "{\"error\":\"No state provided\"}");
         }
@@ -225,7 +225,6 @@ String sendHttpRequest(const String& url) {
         Serial.println(response);
       } else {
         Serial.print("HTTP error: ");
-        response = http.getString();
         Serial.println(response);
       }
       http.end();
@@ -270,70 +269,80 @@ int read_moisture_number(int number){
 }
     return -1; 
 }
-/*
-int read_liquid_sensor_plan_api(){
-    String response = sendHttpRequest("http://192.168.4.2:80/data");
-    //Serial.println("Response esp32-c3-supermini: " + response);
-    if (response != "-1") {
-       DynamicJsonDocument doc(1024);
-       deserializeJson(doc, response);
-       int water = doc["water"];
-       return water; 
-    }
-    return -1;
-}
-*/
 
 bool send_start_pomp() {
     String response = sendHttpRequest("http://192.168.4.3:80/state/on");
     HTTPClient http;
 
     // Проверяем HTTP-код ответа
-    if (http.GET() == HTTP_CODE_OK) { // HTTP_CODE_OK = 200
+    if (response != "-1") { // HTTP_CODE_OK = 200
         Serial.println("Pump started successfully");
         Serial.print("Response: ");
         Serial.println(response); // Выводим ответ для проверки
         return true; // Успешный ответ
     } else {
         Serial.println("Failed to start pump");
-        Serial.print("Response: ");
-        Serial.println(response); // Выводим ответ для диагностики
         return false; // Ошибка
     }
 }
 
 bool send_stop_pomp() {
     String response = sendHttpRequest("http://192.168.4.3:80/state/off");
-    HTTPClient http;
 
     // Проверяем HTTP-код ответа
-    if (http.GET() == HTTP_CODE_OK) { // HTTP_CODE_OK = 200
+    if (response != "-1") { // HTTP_CODE_OK = 200
         Serial.println("Pump stop successfully");
         Serial.print("Response: ");
         Serial.println(response); // Выводим ответ для проверки
         return true; // Успешный ответ
     } else {
         Serial.println("Failed to stop pump");
+        return false; // Ошибка
+    }
+}
+
+bool send_on_relay(){//4!
+    String response = sendHttpRequest("http://192.168.4.4:80/state/on");
+
+    if (response != "-1") { // HTTP_CODE_OK = 200
+        Serial.println("Relay ON successfully");
         Serial.print("Response: ");
-        Serial.println(response); // Выводим ответ для диагностики
+        Serial.println(response); // Выводим ответ для проверки
+        return true; // Успешный ответ
+    } else {
+        Serial.println("Failed to turn on relay");
+        return false; // Ошибка
+    }
+}
+bool send_off_relay(){
+    String response = sendHttpRequest("http://192.168.4.4:80/state/off");
+
+    if (response != "-1") { // HTTP_CODE_OK = 200
+        Serial.println("Relay OFF successfully");
+        Serial.print("Response: ");
+        Serial.println(response); // Выводим ответ для проверки
+        return true; // Успешный ответ
+    } else {
+        Serial.println("Failed to turn on relay");
         return false; // Ошибка
     }
 }
 
 void sendDataTask(void * parameter) {
-
+    vTaskDelay(30 / portTICK_PERIOD_MS);
     setupAccessPoint();
     //setupServer();
 
     while (true) {//loop
+        //eb.tick();
         //---для предоставления состояния к мобильному приложению
         connectToWiFi();
         server.handleClient();
         //***
+        
 
 
-
-        delay(2);
+        //delay(2);
     }
 }
 

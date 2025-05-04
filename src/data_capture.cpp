@@ -29,14 +29,9 @@ void init_devices() {
         Serial.println("RTC initialized successfully");
     }
 
-    // Инициализация датчиков наличия жидкости
-    pinMode(LIQUID_SENSOR_PLANT, INPUT);
+
     pinMode(LIQUID_SENSOR_WATER, INPUT);
 
-    // Инициализация устройств исполнителей
-    pinMode(WATER_PUMP, OUTPUT);
-    servo_window.attach(WINDOW);
-    servo_window.setSpeed(130); // ограничить скорость
 }
 
 // Функция: считывание данных с датчиков
@@ -167,7 +162,7 @@ void measure_water(int sensor_pin) {
     unsigned long previous_millis_water = 0;
     const long interval_water = 900; // Интервал обновления в миллисекундах
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
         unsigned long current_millis = millis();
         if (current_millis - previous_millis_water >= interval_water) {
             previous_millis_water = current_millis;
@@ -192,77 +187,53 @@ void measure_water(int sensor_pin) {
     }
 }
 
-void window_control(float temp) {
-    unsigned long current_time = millis();
+void update_relay_flag() {
+    // Получение текущего времени из RTC
+    if (relay_settings.type == 1){
+    DateTime now = rtc.now();
+    int current_time = now.hour() * 60 + now.minute(); // Текущее время в минутах
+    int start_time = relay_settings.start_hour * 60 + relay_settings.start_minute; // Время начала в минутах
+    int end_time = relay_settings.end_hour * 60 + relay_settings.end_minute;       // Время окончания в минутах
 
-    switch (window_settings.type) {
-        case 0: {
-            Serial.println("Mode: Auto");
-            if (temp < window_settings.low_temp_auto) {
-                Serial.println("Temperature below low_temp_auto, closing window");
-
-                servo_window_control(false);
-                window_flag = false;
-            } else if (temp > window_settings.max_temp_auto) {
-                Serial.println("Temperature above max_temp_auto, opening window");
-
-                servo_window_control(true);
-                window_flag = true;
-            }
-            break;
-        }
-        case 1: {
-            Serial.println("Mode: Time-based");
-            unsigned long time_time_ms = window_settings.time_time * 1000;
-            unsigned long periud_time_ms = window_settings.periud_time * 1000;
-
-            Serial.print("Time time (ms): ");
-            Serial.println(time_time_ms);
-            Serial.print("Period time (ms): ");
-            Serial.println(periud_time_ms);
-
-            if (window_flag) {
-                Serial.println("Window is currently open");
-                if (current_time - last_window_control_time >= time_time_ms) {
-                    Serial.println("Time to close the window");
-
-                    servo_window_control(false);
-                    window_flag = false;
-                    last_window_control_time = current_time;
-                } else {
-                    Serial.println("Not yet time to close the window");
-                }
-            } else {
-                Serial.println("Window is currently closed");
-                if (current_time - last_window_control_time >= periud_time_ms) {
-                    Serial.println("Time to open the window");
-                    servo_window_control(true);
-                    window_flag = true;
-                    last_window_control_time = current_time;
-                } else {
-                    Serial.println("Not yet time to open the window");
-                }
-            }
-            break;
-        }
-        case 2: {
-         //   Serial.println("Mode: off");
-            servo_window_control(false);
-            window_flag = false;
-            break;
-        }
+    if (start_time == end_time) {
+        // Если время старта и финиша совпадают, реле активно весь день
+        relay_settings.relay_flag = true;
+    } else if (start_time < end_time) {
+        // Интервал в пределах одного дня
+        relay_settings.relay_flag = (current_time >= start_time && current_time < end_time);
+    } else {
+        // Интервал пересекает полночь
+        relay_settings.relay_flag = (current_time >= start_time || current_time < end_time);
     }
+
+    // Отладочный вывод
+    Serial.print("Current time: ");
+    Serial.print(now.hour());
+    Serial.print(":");
+    Serial.println(now.minute());
+    Serial.print("Relay flag: ");
+    Serial.println(relay_settings.relay_flag ? "ON" : "OFF");
+}
 }
 
-void servo_window_control(bool window_flag_local, bool init) {
-    if (init) {
-        servo_window.setTargetDeg(270);
-    }
-    if (window_flag == window_flag_local) {
+void relay_control(bool relay_flag_local) {
+
+    if (relay_settings.relay_flag == relay_flag_local) {
         return;
     }
-    servo_window.setTargetDeg(window_flag_local ? 0 : 270);
-    Serial.println("Window state: " + String(window_flag_local ? "open" : "closed"));
+    if (relay_flag_local) {
+        if (send_on_relay()){
+        Serial.println("Relay ON");
+        } else {
+            Serial.println("Relay ON failed");
+        }
+    } else {
+        if (send_off_relay()){
+        Serial.println("Relay OFF");
+        } else {
+            Serial.println("Relay OFF failed");
+        }
+    }
 }
 
 void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sensor) {
@@ -365,11 +336,11 @@ void stop_pump() {
 }
 
 int update_status() {
-    if (pump_flag && window_flag) {
+    if (pump_flag && relay_settings.relay_flag) {
         return 3; // "wat_vent"
     } else if (pump_flag) {
         return 1; // "watering"
-    } else if (window_flag) {
+    } else if (relay_settings.relay_flag) {
         return 2; // "vent"
     } else {
         return 0; // "wait"

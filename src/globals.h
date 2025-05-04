@@ -10,7 +10,7 @@
 #include <EncButton.h> // Библиотека для работы с энкодером
 #include <Adafruit_BME280.h> // Библиотека для работы с датчиком BME280
 #include <RTClib.h> // Библиотека для работы с RTC
-#include <ServoSmooth.h> // Библиотека для работы с сервоприводом
+
 
 //---------- ПИНЫ ----------
 
@@ -23,9 +23,6 @@
 #define MY_DT 17 // Пин для DT энкодера
 #define MY_CLK 16 // Пин для кнопки энкодера
 
-// Устройства исполнители
-#define WATER_PUMP 32 // Пин для управления помпой
-#define WINDOW 33 // Пин для управления окном
 
 // Датчики влажности почвы
 //#define CS_1 34 // Пин для первого датчика влажности почвы
@@ -38,7 +35,7 @@ extern int moisture2_air; // Значение влажности воздуха 
 extern int moisture2_water; // Значение влажности воды для второго датчика
 
 // Датчики наличия жидкости
-#define LIQUID_SENSOR_PLANT 26 // Пин для датчика наличия жидкости в растении
+//#define LIQUID_SENSOR_PLANT 26 // Пин для датчика наличия жидкости в растении
 #define LIQUID_SENSOR_WATER 25 // Пин для датчика наличия воды
 
 //------------АДРЕСА I2C УСТРОЙСТВ------------
@@ -51,7 +48,6 @@ extern int moisture2_water; // Значение влажности воды дл
 extern LiquidCrystal_I2C lcd; // Объект для работы с LCD дисплеем
 extern Adafruit_BME280 bme; // Объект для работы с датчиком BME280
 extern RTC_DS1307 rtc; // Объект для работы с RTC
-extern ServoSmooth servo_window; // Объект для работы с сервоприводом окна
 extern EncButton eb; // Объект для работы с энкодером
 
 // Переменные для работы с меню
@@ -75,8 +71,8 @@ extern bool pump_flag; // Флаг состояния помпы
 extern unsigned long last_pump_control_time; // Время последнего управления помпой
 
 // Переменные для работы с окном
-extern bool window_flag; // Флаг состояния окна
-extern unsigned long last_window_control_time; // Время последнего управления окном
+//extern bool window_flag; // Флаг состояния окна
+//extern unsigned long last_window_control_time; // Время последнего управления окном
 
 typedef struct{
     int moisture1;
@@ -89,4 +85,9 @@ esp32_c3_supermini_data read_http_c3_supermini();
 int read_moisture_number(int number);
 bool send_start_pomp();
 bool send_stop_pomp();
+bool send_on_relay();
+bool send_off_relay();
+
+
+
 #endif //GLOBALS_H

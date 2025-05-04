@@ -12,7 +12,7 @@
 
 // Настройки полива и вентиляции
 #define addr_waterind_settings 24
-#define addr_window_settings 48
+#define addr_relay_settings 48
 
 //Функция: сохранение настроек в EEPROM
 //Принимает: -

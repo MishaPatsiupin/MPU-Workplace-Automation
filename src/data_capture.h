@@ -60,16 +60,10 @@ int read_moisture(int pin, int rawValue);
 // Возвращает: состояние датчика наличия воды
 int read_liquid_sensor_water();
 
-
 // Функция: управление сервоприводом окна
 // Принимает: состояние окна
 // Возвращает: -
-void servo_window_control(bool window_flag_local, bool init = false);
-
-// Функция: управление окном в зависимости от температуры
-// Принимает: температура
-// Возвращает: -
-void window_control(float temp);
+void relay_control(bool window_flag_local);
 
 // Функция: управление насосом
 // Принимает: влажность 1, влажность 2, состояние датчика воды, состояние датчика потопа

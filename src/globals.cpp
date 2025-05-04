@@ -8,11 +8,10 @@
 RTC_DS1307 rtc; // Устройство для работы с RTC
 Adafruit_BME280 bme; // Устройство для работы с датчиком BME280
 LiquidCrystal_I2C lcd(MY_LCD2004_ADDRESS, 20, 4); // Устройство для работы с дисплеем
-ServoSmooth servo_window; // Устройство для работы с сервоприводом окна
 EncButton eb (MY_SW, MY_DT, MY_CLK); // Устройство для работы с энкодером
 
 //главный таймер
-long interval = 2000; // Интервал таймера
+long interval = 3000; // Интервал таймера
 unsigned long previous_millis = 0; // Предыдущее значение времени
 
 //переменные для работы с меню
@@ -37,6 +36,5 @@ int moisture1_water = 1198; // Значение с датчика в воде д
 int moisture2_air = 3088; // Значение с датчика в воздухе датчика 2
 int moisture2_water = 1278; // Значение с датчика в воде датчика 2
 
-// Переменные для работы с окном
-bool window_flag = false; // Флаг состояния окна
-unsigned long last_window_control_time = 0; // Время последнего управления окном
+
+//bool relay_flag = false; 

@@ -4,14 +4,14 @@
 #include "display.h"
 
 void (*menu_functions[])() = {
-    display_debug_moisture1, display_debug_moisture2, display_debug_watering, display_debug_window
+    display_debug_moisture1, display_debug_moisture2, display_debug_watering, display_debug_relay
 };
 
 const char *my_status[] = {
     "wait",
     "water.",
-    "vent",
-    "watVent"
+    "relay",
+    "watRel"
 };
 
 const char *debug_moisture1[] = {
@@ -51,27 +51,21 @@ const char *debug_watering_time[] = {
     "period: "
 };
 
-const char *type_window[] = {
-    "auto",
-    "time",
-    "off"
+const char *type_relay[] = {
+    "off",
+    "time"
 };
 
-const char *debug_window[] = {
-    "DEBUG WINDOW: ",
+const char *debug_relay[] = {
+    "DEBUG RELAY: ",
     "type: ",
     "",
     ""
 };
 
-const char *debug_window_auto[] = {
-    "Low 'C: ",
-    "Max 'C: "
-};
-
-const char *debug_window_time[] = {
-    "time: ",
-    "period: "
+const char *debug_relay_time[] = {
+    "start: ",
+    "end: "
 };
 
 //плохая ерунда, надо возращаться к строкам и тогда модифицировать все выводящие функции (написать новую что принимает позиции и значения?), или же вводить доп флаги прошлого меню,
@@ -211,30 +205,32 @@ void display_debug_watering() {
     lcd.print(">");
 }
 
-void display_debug_window() {
+void display_debug_relay() {
     lcd.clear();
     lcd.setCursor(1, 0);
-    lcd.print(debug_window[0]); // "DEBUG WINDOW: "
+    lcd.print(debug_relay[0]); // "DEBUG RELAY: "
     lcd.setCursor(1, 1);
-    lcd.print(debug_window[1]); // "type: "
-    lcd.print(type_window[window_settings.type]);
+    lcd.print(debug_relay[1]); // "type: "
+    lcd.print(type_relay[relay_settings.type]);
 
     lcd.setCursor(1, 2);
-    lcd.print(debug_window[2]);
+    lcd.print(debug_relay[2]);
     lcd.setCursor(1, 3);
-    lcd.print(debug_window[3]);
+    lcd.print(debug_relay[3]);
 
-    lcd.setCursor(15, 2);
-    if (window_settings.type == 0) {
-        lcd.print(window_settings.low_temp_auto);
-    } else if (window_settings.type == 1) {
-        lcd.print(window_settings.time_time);
+    lcd.setCursor(9, 2);
+
+    if (relay_settings.type == 1) {
+        char start_time[6];
+        snprintf(start_time, sizeof(start_time), "%02d:%02d", relay_settings.start_hour, relay_settings.start_minute);
+        lcd.print(start_time);
     }
-    lcd.setCursor(15, 3);
-    if (window_settings.type == 0) {
-        lcd.print(window_settings.max_temp_auto);
-    } else if (window_settings.type == 1) {
-        lcd.print(window_settings.periud_time);
+    lcd.setCursor(9, 3);
+
+    if (relay_settings.type == 1) {
+        char end_time[6];
+        snprintf(end_time, sizeof(end_time), "%02d:%02d", relay_settings.end_hour, relay_settings.end_minute);
+        lcd.print(end_time);
     }
 
     lcd.setCursor(0, pos);
@@ -272,20 +268,16 @@ void update_debug_watering() {
     display_debug_watering();
 }
 
-void update_debug_window() {
-    if (window_settings.type == 0) {
-        // Auto
-        debug_window[2] = debug_window_auto[0];
-        debug_window[3] = debug_window_auto[1];
-    } else if (window_settings.type == 1) {
+void update_debug_relay() {
+    if (relay_settings.type == 1) {
         // Time
-        debug_window[2] = debug_window_time[0];
-        debug_window[3] = debug_window_time[1];
+        debug_relay[2] = debug_relay_time[0];
+        debug_relay[3] = debug_relay_time[1];
     } else {
-        debug_window[2] = "";
-        debug_window[3] = "";
+        debug_relay[2] = "";
+        debug_relay[3] = "";
     }
-    display_debug_window();
+    display_debug_relay();
 }
 
 
@@ -380,9 +372,9 @@ void handle_right_press_for_pos1() {
             update_debug_watering();
             break;
         case 3:
-            window_settings.type += 1;
-            if (window_settings.type == 3) window_settings.type = 0;
-            update_debug_window();
+            relay_settings.type += 1;
+            if (relay_settings.type == 2) relay_settings.type = 0;
+            update_debug_relay();
             break;
     }
 }
@@ -411,21 +403,22 @@ void handle_right_press_for_pos2() {
             update_debug_watering();
             break;
         case 3:
-            if (window_settings.type == 0) {
-                if (window_settings.low_temp_auto <= 35) {
-                    window_settings.low_temp_auto += 1;
+            if (relay_settings.type == 1) {
+                if (relay_settings.start_minute <= 45){
+                    relay_settings.start_minute += 15;
+                } 
+                if (relay_settings.start_minute == 60) {
+                    relay_settings.start_hour += 1;
+                    relay_settings.start_minute = 0;
                 }
-                if (window_settings.max_temp_auto <= window_settings.low_temp_auto) {
-                    window_settings.max_temp_auto = window_settings.low_temp_auto + 1;
-                }
-            } else if (window_settings.type == 1) {
-                if (window_settings.time_time <= 175) {
-                    window_settings.time_time += 5;
+                if (relay_settings.start_hour == 24) {
+                    relay_settings.start_hour = 0;
                 }
             }
-            update_debug_window();
+            update_debug_relay();
             break;
     }
+    
 }
 
 void handle_left_press_for_pos2() {
@@ -444,16 +437,23 @@ void handle_left_press_for_pos2() {
             update_debug_watering();
             break;
         case 3:
-            if (window_settings.type == 0) {
-                if (window_settings.low_temp_auto >= -39) {
-                    window_settings.low_temp_auto -= 1;
+            if (relay_settings.type == 1) {
+                if (relay_settings.start_minute >= 0){
+
+                    relay_settings.start_minute -= 15;
                 }
-            } else if (window_settings.type == 1) {
-                if (window_settings.time_time >= 5) {
-                    window_settings.time_time -= 5;
+                if (relay_settings.start_minute == -15)
+                {
+                    if (relay_settings.start_hour <=0) {
+                        relay_settings.start_hour = 23;
+                        relay_settings.start_minute = 45;
+                    } else {
+                    relay_settings.start_hour -= 1;
+                    relay_settings.start_minute = 0;
+                    }
                 }
             }
-            update_debug_window();
+            update_debug_relay();
             break;
     }
 }
@@ -488,16 +488,19 @@ void handle_right_press_for_pos3() {
             update_debug_watering();
             break;
         case 3:
-            if (window_settings.type == 0) {
-                if (window_settings.max_temp_auto <= 39) {
-                    window_settings.max_temp_auto += 1;
+            if (relay_settings.type == 1) {
+                if (relay_settings.end_minute <= 45){
+                    relay_settings.end_minute += 15;
                 }
-            } else if (window_settings.type == 1) {
-                if (window_settings.periud_time <= 175) {
-                    window_settings.periud_time += 5;
+                if (relay_settings.end_minute == 60) {
+                    relay_settings.end_hour += 1;
+                    relay_settings.end_minute = 0;
+                }
+                if (relay_settings.end_hour == 24) {
+                    relay_settings.end_hour = 0;
                 }
             }
-            update_debug_window();
+            update_debug_relay();
             break;
     }
 }
@@ -532,19 +535,21 @@ void handle_left_press_for_pos3() {
             update_debug_watering();
             break;
         case 3:
-            if (window_settings.type == 0) {
-                if (window_settings.max_temp_auto >= -39) {
-                    window_settings.max_temp_auto -= 1;
+            if (relay_settings.type == 1) {
+                if (relay_settings.end_minute >= 0) {
+                    relay_settings.end_minute -= 15;
                 }
-                if (window_settings.low_temp_auto >= window_settings.max_temp_auto) {
-                    window_settings.low_temp_auto = window_settings.max_temp_auto - 1;
+                if (relay_settings.end_minute == -15) {
+                    if (relay_settings.end_hour <= 0) {
+                        relay_settings.end_hour = 23;
+                        relay_settings.end_minute = 45;
+                    } else {
+                        relay_settings.end_hour -= 1;
+                        relay_settings.end_minute = 0;
+                    }
                 }
-            } else if (window_settings.type == 1) {
-                if (window_settings.periud_time >= 5) {
-                    window_settings.periud_time -= 5;
-                }
-            }
-            update_debug_window();
+            } 
+            update_debug_relay();
             break;
     }
 }
