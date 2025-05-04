@@ -197,22 +197,27 @@ void update_relay_flag() {
 
     if (start_time == end_time) {
         // Если время старта и финиша совпадают, реле активно весь день
+        relay_control(true); 
         relay_settings.relay_flag = true;
     } else if (start_time < end_time) {
         // Интервал в пределах одного дня
-        relay_settings.relay_flag = (current_time >= start_time && current_time < end_time);
+        int i = current_time >= start_time && current_time < end_time;
+        relay_control(i);
+        relay_settings.relay_flag = i;
     } else {
         // Интервал пересекает полночь
-        relay_settings.relay_flag = (current_time >= start_time || current_time < end_time);
+        int i = (current_time >= start_time || current_time < end_time);
+        relay_control(i);
+        relay_settings.relay_flag = i;
     }
-
+    
     // Отладочный вывод
-    Serial.print("Current time: ");
-    Serial.print(now.hour());
-    Serial.print(":");
-    Serial.println(now.minute());
-    Serial.print("Relay flag: ");
-    Serial.println(relay_settings.relay_flag ? "ON" : "OFF");
+    //Serial.print("Current time: ");
+    //Serial.print(now.hour());
+    //Serial.print(":");
+    //Serial.println(now.minute());
+    //Serial.print("Relay flag: ");
+    //Serial.println(relay_settings.relay_flag ? "ON" : "OFF");
 }
 }
 
@@ -243,8 +248,8 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
     if (water_sensor == 1) {
       //  Serial.println("No water in tank, stopping pump");
         if (pump_flag) {
+            stop_pump(false);
             pump_flag = false;
-            stop_pump();
         }
         return;
     }
@@ -252,15 +257,15 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
     if (flood_sensor == 0) {
       //  Serial.println("Flood detected, stopping pump");
         if (pump_flag) {
+            stop_pump(false);
             pump_flag = false;
-            stop_pump();
         }
         return;
     }
 
     switch (waterind_settings.type) {
         case 0: { // Auto mode
-            Serial.println("Mode: Auto");
+            //Serial.println("Mode: Auto");
             if (moisture1 < control_moisture1_value || moisture2 < control_moisture2_value) {
                 if (moisture1 < waterind_settings.max_control_value_auto && moisture2 < waterind_settings.max_control_value_auto) {
                     if (!pump_flag) {
@@ -275,12 +280,14 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
             if (pump_flag) {
                 if (moisture1 >= waterind_settings.max_control_value_auto || moisture2 >= waterind_settings.max_control_value_auto) {
                     Serial.println("Moisture above max control value, stopping pump");
+                    stop_pump(false);
                     pump_flag = false;
-                    stop_pump();
                 } else if (current_time - last_pump_control_time >= waterind_settings.time_s_auto * 1000) {
-                    Serial.println("Auto watering time elapsed, stopping pump");
-                    pump_flag = false;
-                    stop_pump();
+                    if (waterind_settings.time_s_auto != 0){
+                        Serial.println("Auto watering time elapsed, stopping pump");
+                        stop_pump(false);
+                        pump_flag = false;
+                    }
                 }
             }
             break;
@@ -299,15 +306,15 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
 
             if (pump_flag && current_time - last_pump_control_time >= time_s_time_ms) {
                 Serial.println("Watering time elapsed, stopping pump");
+                stop_pump(false);
                 pump_flag = false;
-                stop_pump();
             }
             break;
         }
         case 2: {
             Serial.println(" Waterind Mode: off");
+            stop_pump(false);
             pump_flag = false;
-            stop_pump();
             break;
         }
 
@@ -329,10 +336,11 @@ void start_pump() {
     Serial.println("Pump is ON");
 }
 
-void stop_pump() {
-    //delay(100); 
+void stop_pump(bool netx_state) {
+    if (netx_state != pump_flag) {
     send_stop_pomp();
     Serial.println("Pump is OFF");
+}
 }
 
 int update_status() {

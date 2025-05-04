@@ -147,9 +147,9 @@ void handleSetPomp() {
         if (doc.containsKey("state")) {
             pump_flag = doc["state"];
             if (pump_flag) {
-                start_pump();
+                send_start_pomp();
             } else {
-                stop_pump();
+                send_stop_pomp();
             }
             server.send(200, "application/json", "{\"message\":\"Water pump state updated\",\"new_state\":" + String(pump_flag) + "}");
         } else {
@@ -220,12 +220,12 @@ String sendHttpRequest(const String& url) {
     if (http.begin(url)) {
       int httpCode = http.GET();
       if (httpCode == HTTP_CODE_OK) {
-        Serial.print("Response: ");
+        //Serial.print("Response: ");
         response = http.getString();
-        Serial.println(response);
+        //Serial.println(response);
       } else {
-        Serial.print("HTTP error: ");
-        Serial.println(response);
+        //Serial.print("HTTP error: ");
+        //Serial.println(response);
       }
       http.end();
     } else {
@@ -277,7 +277,7 @@ bool send_start_pomp() {
     // Проверяем HTTP-код ответа
     if (response != "-1") { // HTTP_CODE_OK = 200
         Serial.println("Pump started successfully");
-        Serial.print("Response: ");
+        Serial.print("Response(send_start_pomp): ");
         Serial.println(response); // Выводим ответ для проверки
         return true; // Успешный ответ
     } else {
@@ -292,7 +292,7 @@ bool send_stop_pomp() {
     // Проверяем HTTP-код ответа
     if (response != "-1") { // HTTP_CODE_OK = 200
         Serial.println("Pump stop successfully");
-        Serial.print("Response: ");
+        Serial.print("Response(send_stop_pomp): ");
         Serial.println(response); // Выводим ответ для проверки
         return true; // Успешный ответ
     } else {
@@ -306,7 +306,7 @@ bool send_on_relay(){//4!
 
     if (response != "-1") { // HTTP_CODE_OK = 200
         Serial.println("Relay ON successfully");
-        Serial.print("Response: ");
+        Serial.print("Response(send_on_relay): ");
         Serial.println(response); // Выводим ответ для проверки
         return true; // Успешный ответ
     } else {
@@ -319,7 +319,7 @@ bool send_off_relay(){
 
     if (response != "-1") { // HTTP_CODE_OK = 200
         Serial.println("Relay OFF successfully");
-        Serial.print("Response: ");
+        Serial.print("Response(send_off_relay): ");
         Serial.println(response); // Выводим ответ для проверки
         return true; // Успешный ответ
     } else {
@@ -354,14 +354,36 @@ void wifi_status() {
         display_start_time = millis(); // Сохранение времени начала отображения
         lcd.clear();
 
+        // Строка 0: IP или статус подключения
         lcd.setCursor(0, 0);
         if (WiFi.isConnected()) {
             lcd.print("IP: ");
             lcd.print(WiFi.localIP());
         } else {
-            lcd.print("Connecting to WiFi..");
+            lcd.print("Connecting...");
         }
 
+        // Вывод MAC-адресов подключенных устройств
+        wifi_sta_list_t stationList;
+        esp_wifi_ap_get_sta_list(&stationList);
+
+        for (int i = 0; i < stationList.num && i < 3; i++) { // Ограничение на 3 устройства
+            wifi_sta_info_t station = stationList.sta[i];
+            char macStr[18];
+            snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+                     station.mac[0], station.mac[1], station.mac[2],
+                     station.mac[3], station.mac[4], station.mac[5]);
+
+            // Строки 1, 2, 3: MAC-адреса
+            lcd.setCursor(0, i + 1);
+            lcd.print(macStr);
+        }
+
+        // Если меньше 3 устройств, оставшиеся строки остаются пустыми
+        for (int i = stationList.num; i < 3; i++) {
+            lcd.setCursor(0, i + 1);
+            lcd.print("                "); // Очистка строки
+        }
     }
     show_status = false;
 }

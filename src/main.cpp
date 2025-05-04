@@ -49,6 +49,7 @@ void setup() {
 
 }
 unsigned long lastSaveTime = 0;
+static unsigned long last_upd_relay_time = 0;
 
 //Функция: основной цикл программы
 //Принимает: -
@@ -64,7 +65,6 @@ void loop() {
 
         now_sensor_data = read_data_sensors(); // Чтение данных с датчиков
         //window_control(now_sensor_data.temperature); // Управление окном на основе температуры
-        update_relay_flag();
         pump_control(now_sensor_data.moisture1, now_sensor_data.moisture2, now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant); // Управление помпой на основе данных с датчиков
 
         if (!in_menu) {
@@ -80,6 +80,10 @@ void loop() {
             lastSaveTime = current_millis;
         }
 
+    }
+    if (current_millis - last_upd_relay_time >= 60000) {
+        last_upd_relay_time = current_millis;
+        update_relay_flag(); // Обновление состояния реле
     }
 
 
