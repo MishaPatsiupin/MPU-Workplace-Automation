@@ -1,4 +1,5 @@
 .pio
 .idea
 .PVS-Studio
+.vscode
 docs/*
