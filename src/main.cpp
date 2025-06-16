@@ -1,15 +1,14 @@
-//Патюпин М.С. ГР250503 КП
-//Микропроцессорное устройство контроля параметров тепличного комбината
+// Патюпин М.С. ГР250503 КП
+// Микропроцессорное устройство контроля параметров тепличного комбината
 
 // Подключение библиотеки для работы с API
-#include <api.h>
 #include <EEPROM.h>
-
+#include <api.h>
 
 // Подключение заголовочных файлов
-#include "display.h" // Заголовочный файл для работы с дисплеем
-#include "globals.h" // Заголовочный файл с глобальными переменными
-#include "data_capture.h" // Заголовочный файл для работы с данными
+#include "data_capture.h"  // Заголовочный файл для работы с данными
+#include "display.h"       // Заголовочный файл для работы с дисплеем
+#include "globals.h"  // Заголовочный файл с глобальными переменными
 #include "my_eeprom.h"
 
 // Структура для хранения настроек окна
@@ -24,77 +23,85 @@ struct old_data old_data;
 // Структура для хранения данных с датчиков
 sensor_data now_sensor_data;
 
-//Функция: инициализация устройств и подключение к Wi-Fi
-//Принимает: -
-//Возвращает: -
+// Функция: инициализация устройств и подключение к Wi-Fi
+// Принимает: -
+// Возвращает: -
 void setup() {
     EEPROM.begin(512);
-    Wire.begin(MY_SDA_PIN, MY_SCL_PIN); // Инициализация шины I2C
-    Serial.begin(115200); // Инициализация последовательного порта
-    init_devices(); // Инициализация устройств
-    //relay_control(false);
+    Wire.begin(MY_SDA_PIN, MY_SCL_PIN);  // Инициализация шины I2C
+    Serial.begin(115200);  // Инициализация последовательного порта
+    init_devices();        // Инициализация устройств
+    // relay_control(false);
 
     // Создание задачи для отправки данных по Wi-Fi на втором ядре
-    xTaskCreatePinnedToCore(
-        sendDataTask,   // Функция задачи
-        "SendDataTask", // Имя задачи
-        10000,          // Размер стека задачи
-        NULL,           // Параметр задачи
-        1,              // Приоритет задачи
-        NULL,           // Дескриптор задачи
-        1               // Ядро, на котором будет выполняться задача (1 - второе ядро)
+    xTaskCreatePinnedToCore(sendDataTask,    // Функция задачи
+                            "SendDataTask",  // Имя задачи
+                            10000,           // Размер стека задачи
+                            NULL,            // Параметр задачи
+                            1,               // Приоритет задачи
+                            NULL,            // Дескриптор задачи
+                            1  // Ядро, на котором будет выполняться
+                               // задача (1 - второе ядро)
     );
 
     loadFromEEPROM();
-
 }
 unsigned long lastSaveTime = 0;
 static unsigned long last_upd_relay_time = 0;
 
-//Функция: основной цикл программы
-//Принимает: -
-//Возвращает: -
+// Функция: основной цикл программы
+// Принимает: -
+// Возвращает: -
 void loop() {
-    eb.tick(); // Обработка событий энкодера
-    if (eb.clicks  == 3) show_status = true;
+    eb.tick();  // Обработка событий энкодера
+    if (eb.clicks == 3) show_status = true;
 
-    unsigned long current_millis = millis(); // Текущее время работы
+    unsigned long current_millis = millis();  // Текущее время работы
 
     if (current_millis - previous_millis >= interval) {
         previous_millis = current_millis;
 
-        now_sensor_data = read_data_sensors(); // Чтение данных с датчиков
-        //window_control(now_sensor_data.temperature); // Управление окном на основе температуры
-        pump_control(now_sensor_data.moisture1, now_sensor_data.moisture2, now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant); // Управление помпой на основе данных с датчиков
+        now_sensor_data =
+            read_data_sensors();  // Чтение данных с датчиков
+        // window_control(now_sensor_data.temperature); // Управление
+        // окном на основе температуры
+        pump_control(
+            now_sensor_data.moisture1, now_sensor_data.moisture2,
+            now_sensor_data.liquid_sensor_water,
+            now_sensor_data
+                .liquid_sensor_plant);  // Управление помпой на основе
+                                        // данных с датчиков
 
         if (!in_menu) {
-            display_data(update_status(), now_sensor_data.temperature,
-                         check_weather_condition(now_sensor_data.pressure), now_sensor_data.moisture1,
-                         now_sensor_data.moisture2,
-                         now_sensor_data.liquid_sensor_water, now_sensor_data.liquid_sensor_plant); // Обновление данных на дисплее
-            //функция отслеживающая статус подключения к сети
+            display_data(
+                update_status(), now_sensor_data.temperature,
+                check_weather_condition(now_sensor_data.pressure),
+                now_sensor_data.moisture1, now_sensor_data.moisture2,
+                now_sensor_data.liquid_sensor_water,
+                now_sensor_data
+                    .liquid_sensor_plant);  // Обновление данных на
+                                            // дисплее
+            // функция отслеживающая статус подключения к сети
             wifi_status();
         }
         if (current_millis - lastSaveTime >= 60000) {
             saveToEEPROM();
             lastSaveTime = current_millis;
         }
-
     }
     if (current_millis - last_upd_relay_time >= 30000) {
         last_upd_relay_time = current_millis;
-        update_relay_flag(); // Обновление состояния реле
+        update_relay_flag();  // Обновление состояния реле
     }
 
-
-    handle_backlight(); // Обновление подсветки дисплея
-    handle_menu_navigation(); // Обработка навигации по меню
-    handle_value_adjustments(); // Обработка изменения значений
+    handle_backlight();          // Обновление подсветки дисплея
+    handle_menu_navigation();    // Обработка навигации по меню
+    handle_value_adjustments();  // Обработка изменения значений
 }
 
-//Функция: сохранение настроек в EEPROM
-//Принимает: -
-//Возвращает: -
+// Функция: сохранение настроек в EEPROM
+// Принимает: -
+// Возвращает: -
 void saveToEEPROM() {
     EEPROM.put(addr_control_moisture1_value, control_moisture1_value);
     EEPROM.put(addr_control_moisture2_value, control_moisture2_value);
@@ -107,14 +114,16 @@ void saveToEEPROM() {
     EEPROM.commit();
 }
 
-//Функция: загрузка настроек из EEPROM
-//Принимает: -
-//Возвращает: -
+// Функция: загрузка настроек из EEPROM
+// Принимает: -
+// Возвращает: -
 void loadFromEEPROM() {
     int test_value = 0;
     if (EEPROM.get(addr_moisture2_water, test_value) != -1) {
-        EEPROM.get(addr_control_moisture1_value, control_moisture1_value);
-        EEPROM.get(addr_control_moisture2_value, control_moisture2_value);
+        EEPROM.get(addr_control_moisture1_value,
+                   control_moisture1_value);
+        EEPROM.get(addr_control_moisture2_value,
+                   control_moisture2_value);
         EEPROM.get(addr_moisture1_air, moisture1_air);
         EEPROM.get(addr_moisture1_water, moisture1_water);
         EEPROM.get(addr_moisture2_air, moisture2_air);

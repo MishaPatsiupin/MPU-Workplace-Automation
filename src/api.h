@@ -1,5 +1,5 @@
-//Патюпин М.С. ГР250503 КП
-//Микропроцессорное устройство контроля параметров тепличного комбината
+// Патюпин М.С. ГР250503 КП
+// Микропроцессорное устройство контроля параметров тепличного комбината
 
 #ifndef API_H
 #define API_H
@@ -10,8 +10,8 @@
 #include <ArduinoJson.h>
 // Подключение библиотеки для работы с WiFi
 #include <WiFi.h>
-//#include <ESPmDNS.h>
-// Подключение библиотеки для работы с UDP
+// #include <ESPmDNS.h>
+//  Подключение библиотеки для работы с UDP
 #include <WiFiUdp.h>
 // Подключение библиотеки для работы с NTP клиентом
 #include <NTPClient.h>
@@ -37,13 +37,13 @@ void handleSetPomp();
 // Функция: обработчик для установки состояния вентиляции
 // Принимает: -
 // Возвращает: -
-void handleSetVentilation();
+void handleSetRelay();
 // Функция: задача для второго ядра
 // Принимает: указатель на параметр
 // Возвращает: -
-void sendDataTask(void * parameter);
+void sendDataTask(void* parameter);
 
 extern bool show_status;
 void wifi_status();
 
-#endif //API_H
+#endif  // API_H

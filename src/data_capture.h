@@ -4,26 +4,27 @@
 #ifndef DATA_CAPTURE_H
 #define DATA_CAPTURE_H
 
-#include "globals.h"  // Подключение глобальных переменных
 #include "display.h"  // Подключение файла для обновления дисплеем
+#include "globals.h"  // Подключение глобальных переменных
 
 // Структура для хранения данных с датчиков
 struct sensor_data {
     // bme280
-    float temperature = 22;      // Температура
-    float humidity = 90;        // Влажность
-    float pressure = 995;       // Давление
+    float temperature = 22;  // Температура
+    float humidity = 90;     // Влажность
+    float pressure = 995;    // Давление
 
     // Влажность почвы
-    int moisture1 = 40;        // Влажность почвы 1
-    int moisture2 = 40;          // Влажность почвы 2
+    int moisture1 = 40;  // Влажность почвы 1
+    int moisture2 = 40;  // Влажность почвы 2
 
     // Датчики жидкости
     int liquid_sensor_water = 1;  // Датчик наличия воды
-    int liquid_sensor_plant = 0;   // Датчик наличия жидкости в растении
+    int liquid_sensor_plant = 0;  // Датчик наличия жидкости в растении
 };
 
-extern sensor_data now_sensor_data;  // Экземпляр структуры для хранения текущих данных с датчиков
+extern sensor_data now_sensor_data;  // Экземпляр структуры для хранения
+                                     // текущих данных с датчиков
 
 // Функция: инициализация устройств
 // Принимает: -
@@ -66,9 +67,10 @@ int read_liquid_sensor_water();
 void relay_control(bool window_flag_local);
 
 // Функция: управление насосом
-// Принимает: влажность 1, влажность 2, состояние датчика воды, состояние датчика потопа
-// Возвращает: -
-void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sensor);
+// Принимает: влажность 1, влажность 2, состояние датчика воды,
+// состояние датчика потопа Возвращает: -
+void pump_control(int moisture1, int moisture2, int water_sensor,
+                  int flood_sensor);
 
 // Функция: включение помпы
 // Принимает: -
@@ -90,4 +92,4 @@ int update_status();
 // Возвращает: состояние погоды
 int check_weather_condition(float pressure);
 
-#endif // DATA_CAPTURE_H
+#endif  // DATA_CAPTURE_H
