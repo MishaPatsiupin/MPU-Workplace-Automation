@@ -12,16 +12,16 @@
 
 // Настройки полива и вентиляции
 #define addr_waterind_settings 24
-#define addr_window_settings 48
+#define addr_relay_settings 48
 
-//Функция: сохранение настроек в EEPROM
-//Принимает: -
-//Возвращает: -
+// Функция: сохранение настроек в EEPROM
+// Принимает: -
+// Возвращает: -
 void saveToEEPROM();
 
-//Функция: загрузка настроек из EEPROM
-//Принимает: -
-//Возвращает: -
+// Функция: загрузка настроек из EEPROM
+// Принимает: -
+// Возвращает: -
 void loadFromEEPROM();
 
-#endif //EEPROM_H
+#endif  // EEPROM_H

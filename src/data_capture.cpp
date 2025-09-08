@@ -20,7 +20,7 @@ void init_devices() {
         Serial.println("BME280 initialized successfully");
     }
 
-    //Инициализация RTC
+    // Инициализация RTC
     if (!rtc.begin()) {
         Serial.println("Could not find RTC");
         lcd.clear();
@@ -29,67 +29,90 @@ void init_devices() {
         Serial.println("RTC initialized successfully");
     }
 
-    // Инициализация датчиков влажности почвы
-    pinMode(CS_1, INPUT);
-    pinMode(CS_2, INPUT);
-    // Инициализация датчиков наличия жидкости
-    pinMode(LIQUID_SENSOR_PLANT, INPUT);
     pinMode(LIQUID_SENSOR_WATER, INPUT);
-
-    // Инициализация устройств исполнителей
-    pinMode(WATER_PUMP, OUTPUT);
-    servo_window.attach(WINDOW);
-    servo_window.setSpeed(130); // ограничить скорость
 }
 
+// Функция: считывание данных с датчиков
 sensor_data read_data_sensors() {
+    // Опредление заполняемой структуры
     sensor_data data{};
+    // Чтение по i2c
     data.temperature = read_temperature();
     data.humidity = read_humidity();
     data.pressure = read_pressure();
 
-    data.moisture1 = read_moisture(CS_1);
-    data.moisture2 = read_moisture(CS_2);
-
     data.liquid_sensor_water = read_liquid_sensor_water();
-    data.liquid_sensor_plant = read_liquid_sensor_plant();
+
+    // чтение по http с esp32-c3-supermini(земля)
+    esp32_c3_supermini_data data_from_esp32_c3_supermini =
+        read_http_c3_supermini();
+    data.moisture1 =
+        read_moisture(1, data_from_esp32_c3_supermini.moisture1);
+    data.moisture2 =
+        read_moisture(2, data_from_esp32_c3_supermini.moisture2);
+    data.liquid_sensor_plant =
+        data_from_esp32_c3_supermini.liquid_sensor_plant;
 
     return data;
 }
 
-float read_temperature() {
-    return bme.readTemperature();
-}
+float read_temperature() { return bme.readTemperature(); }
 
-float read_humidity() {
-    return bme.readHumidity();
-}
+float read_humidity() { return bme.readHumidity(); }
 
 float read_pressure() {
     return (bme.readPressure() / 100.0F) * 0.75006F;
 }
 
-int read_moisture(int pin) {
-    int measured_val = analogRead(pin);
-    int soil_moisture_percent = map(measured_val, (pin == CS_1) ? moisture1_air : moisture2_air,
-                                    (pin == CS_1) ? moisture1_water : moisture2_water, 0, 100);
+int _map(int x, int in_min, int in_max, int out_min, int out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) +
+           out_min;
+}
 
-    if (soil_moisture_percent < 0 || soil_moisture_percent > 100) {
-        Serial.print("Error moisture ");
-        Serial.print(pin == CS_1 ? 1 : 2);
-        Serial.print(" -> ");
-        Serial.println(soil_moisture_percent);
-        soil_moisture_percent = -1;
+int _constrain(int value, int min_val, int max_val) {
+    return (value < min_val) ? min_val
+                             : ((value > max_val) ? max_val : value);
+}
+
+int read_moisture(int pin, int rawValue) {
+    int measured_val = rawValue;
+
+    // Инвертированные диапазоны для датчиков
+    int soil_moisture_percent;
+    if (pin == 1) {
+        // Для датчика 1: высокое значение = сухо, низкое = мокро
+        soil_moisture_percent =
+            _map(measured_val,
+                 moisture1_air,    // Максимальное значение (сухо)
+                 moisture1_water,  // Минимальное значение (мокро)
+                 0, 100);
+    } else {
+        // Для датчика 2: аналогичная логика
+        soil_moisture_percent =
+            _map(measured_val, moisture2_air, moisture2_water, 0, 100);
     }
+
+    soil_moisture_percent = _constrain(soil_moisture_percent, 0, 100);
+
+    // Отладочный вывод
+    /*
+    Serial.print("Sensor");
+    Serial.print(pin);
+    Serial.print(": raw=");
+    Serial.print(measured_val);
+    Serial.print(" air=");
+    Serial.print((pin == 1) ? moisture1_air : moisture2_air);
+    Serial.print(" water=");
+    Serial.print((pin == 1) ? moisture1_water : moisture2_water);
+    Serial.print(" → ");
+    Serial.print(soil_moisture_percent);
+    Serial.println("%");
+    */
     return soil_moisture_percent;
 }
 
 int read_liquid_sensor_water() {
     return digitalRead(LIQUID_SENSOR_WATER);
-}
-
-int read_liquid_sensor_plant() {
-    return digitalRead(LIQUID_SENSOR_PLANT);
 }
 
 void measure_air(int sensor_pin) {
@@ -102,9 +125,11 @@ void measure_air(int sensor_pin) {
         unsigned long current_millis = millis();
         if (current_millis - previous_millis_air >= interval_air) {
             previous_millis_air = current_millis;
-            measured_val = analogRead(sensor_pin);
-            if (measured_val > highest_val) {
-                highest_val = measured_val;
+            measured_val = read_moisture_number(sensor_pin);
+            if (measured_val != -1) {
+                if (measured_val > highest_val) {
+                    highest_val = measured_val;
+                }
             }
         }
     }
@@ -112,10 +137,10 @@ void measure_air(int sensor_pin) {
     Serial.println(highest_val);
 
     switch (sensor_pin) {
-        case CS_1:
+        case 1:
             moisture1_air = highest_val;
             break;
-        case CS_2:
+        case 2:
             moisture2_air = highest_val;
             break;
     }
@@ -125,15 +150,18 @@ void measure_water(int sensor_pin) {
     int lowest_val = 30000;
     int measured_val = 0;
     unsigned long previous_millis_water = 0;
-    const long interval_water = 500; // Интервал обновления в миллисекундах
+    const long interval_water =
+        900;  // Интервал обновления в миллисекундах
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
         unsigned long current_millis = millis();
         if (current_millis - previous_millis_water >= interval_water) {
             previous_millis_water = current_millis;
-            measured_val = analogRead(sensor_pin);
-            if (measured_val < lowest_val) {
-                lowest_val = measured_val;
+            measured_val = read_moisture_number(sensor_pin);
+            if (measured_val != -1) {
+                if (measured_val < lowest_val) {
+                    lowest_val = measured_val;
+                }
             }
         }
     }
@@ -141,117 +169,117 @@ void measure_water(int sensor_pin) {
     Serial.println(lowest_val);
 
     switch (sensor_pin) {
-        case CS_1:
+        case 1:
             moisture1_water = lowest_val;
             break;
-        case CS_2:
+        case 2:
             moisture2_water = lowest_val;
             break;
     }
 }
 
-void window_control(float temp) {
-    unsigned long current_time = millis();
-
-    switch (window_settings.type) {
-        case 0: {
-            Serial.println("Mode: Auto");
-            if (temp < window_settings.low_temp_auto) {
-                Serial.println("Temperature below low_temp_auto, closing window");
-
-                servo_window_control(false);
-                window_flag = false;
-            } else if (temp > window_settings.max_temp_auto) {
-                Serial.println("Temperature above max_temp_auto, opening window");
-
-                servo_window_control(true);
-                window_flag = true;
-            }
-            break;
-        }
-        case 1: {
-            Serial.println("Mode: Time-based");
-            unsigned long time_time_ms = window_settings.time_time * 1000;
-            unsigned long periud_time_ms = window_settings.periud_time * 1000;
-
-            Serial.print("Time time (ms): ");
-            Serial.println(time_time_ms);
-            Serial.print("Period time (ms): ");
-            Serial.println(periud_time_ms);
-
-            if (window_flag) {
-                Serial.println("Window is currently open");
-                if (current_time - last_window_control_time >= time_time_ms) {
-                    Serial.println("Time to close the window");
-
-                    servo_window_control(false);
-                    window_flag = false;
-                    last_window_control_time = current_time;
-                } else {
-                    Serial.println("Not yet time to close the window");
-                }
-            } else {
-                Serial.println("Window is currently closed");
-                if (current_time - last_window_control_time >= periud_time_ms) {
-                    Serial.println("Time to open the window");
-                    servo_window_control(true);
-                    window_flag = true;
-                    last_window_control_time = current_time;
-                } else {
-                    Serial.println("Not yet time to open the window");
-                }
-            }
-            break;
-        }
-        case 2: {
-            Serial.println("Mode: off");
-            servo_window_control(false);
-            window_flag = false;
-            break;
-        }
-    }
-}
-
-void servo_window_control(bool window_flag_local, bool init) {
-    if (init) {
-        servo_window.setTargetDeg(270);
-    }
-    if (window_flag == window_flag_local) {
+void update_relay_flag() {
+    // Получение текущего времени из RTC
+    if (relay_settings.api_relay_set == true) {
+        // Если реле управляется API, то не обновляем его состояние
         return;
     }
-    servo_window.setTargetDeg(window_flag_local ? 0 : 270);
-    Serial.println("Window state: " + String(window_flag_local ? "open" : "closed"));
+    if (relay_settings.type == 1) {
+        DateTime now = rtc.now();
+        int current_time =
+            now.hour() * 60 + now.minute();  // Текущее время в минутах
+        int start_time =
+            relay_settings.start_hour * 60 +
+            relay_settings.start_minute;  // Время начала в минутах
+        int end_time =
+            relay_settings.end_hour * 60 +
+            relay_settings.end_minute;  // Время окончания в минутах
+
+        if (start_time == end_time) {
+            // Если время старта и финиша совпадают, реле активно весь
+            // день
+            relay_control(true);
+            relay_settings.relay_flag = true;
+        } else if (start_time < end_time) {
+            // Интервал в пределах одного дня
+            int i =
+                current_time >= start_time && current_time < end_time;
+            relay_control(i);
+            relay_settings.relay_flag = i;
+        } else {
+            // Интервал пересекает полночь
+            int i =
+                (current_time >= start_time || current_time < end_time);
+            relay_control(i);
+            relay_settings.relay_flag = i;
+        }
+
+        // Отладочный вывод
+        // Serial.print("Current time: ");
+        // Serial.print(now.hour());
+        // Serial.print(":");
+        // Serial.println(now.minute());
+        // Serial.print("Relay flag(update_relay_flag): ");
+        // Serial.println(relay_settings.relay_flag ? "ON" : "OFF");
+    }
 }
 
-void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sensor) {
+void relay_control(bool relay_flag_local) {
+    if (relay_settings.relay_flag == relay_flag_local) {
+        return;
+    }
+    if (relay_flag_local) {
+        if (send_on_relay()) {
+            Serial.println("Relay ON");
+        } else {
+            Serial.println("Relay ON failed");
+        }
+    } else {
+        if (send_off_relay()) {
+            Serial.println("Relay OFF");
+        } else {
+            Serial.println("Relay OFF failed");
+            
+        }
+    }
+}
+
+void pump_control(int moisture1, int moisture2, int water_sensor,
+                  int flood_sensor) {
     unsigned long current_time = millis();
 
     // Проверка датчиков воды и потопа
     if (water_sensor == 1) {
-        Serial.println("No water in tank, stopping pump");
+        //  Serial.println("No water in tank, stopping pump");
         if (pump_flag) {
+            stop_pump(false);
             pump_flag = false;
-            stop_pump();
         }
         return;
     }
 
     if (flood_sensor == 0) {
-        Serial.println("Flood detected, stopping pump");
+        //  Serial.println("Flood detected, stopping pump");
         if (pump_flag) {
+            stop_pump(false);
             pump_flag = false;
-            stop_pump();
         }
         return;
     }
 
     switch (waterind_settings.type) {
-        case 0: { // Auto mode
-            Serial.println("Mode: Auto");
-            if (moisture1 < control_moisture1_value || moisture2 < control_moisture2_value) {
-                if (moisture1 < waterind_settings.max_control_value_auto && moisture2 < waterind_settings.max_control_value_auto) {
+        case 0: {  // Auto mode
+            // Serial.println("Mode: Auto");
+            if (moisture1 < control_moisture1_value ||
+                moisture2 < control_moisture2_value) {
+                if (moisture1 <
+                        waterind_settings.max_control_value_auto &&
+                    moisture2 <
+                        waterind_settings.max_control_value_auto) {
                     if (!pump_flag) {
-                        Serial.println("Moisture below control value, starting pump");
+                        Serial.println(
+                            "Moisture below control value, starting "
+                            "pump");
                         pump_flag = true;
                         last_pump_control_time = current_time;
                         start_pump();
@@ -260,44 +288,57 @@ void pump_control(int moisture1, int moisture2, int water_sensor, int flood_sens
             }
 
             if (pump_flag) {
-                if (moisture1 >= waterind_settings.max_control_value_auto || moisture2 >= waterind_settings.max_control_value_auto) {
-                    Serial.println("Moisture above max control value, stopping pump");
+                if (moisture1 >=
+                        waterind_settings.max_control_value_auto ||
+                    moisture2 >=
+                        waterind_settings.max_control_value_auto) {
+                    Serial.println(
+                        "Moisture above max control value, stopping "
+                        "pump");
+                    stop_pump(false);
                     pump_flag = false;
-                    stop_pump();
-                } else if (current_time - last_pump_control_time >= waterind_settings.time_s_auto * 1000) {
-                    Serial.println("Auto watering time elapsed, stopping pump");
-                    pump_flag = false;
-                    stop_pump();
+                } else if (current_time - last_pump_control_time >=
+                           waterind_settings.time_s_auto * 1000) {
+                    if (waterind_settings.time_s_auto != 0) {
+                        Serial.println(
+                            "Auto watering time elapsed, stopping "
+                            "pump");
+                        stop_pump(false);
+                        pump_flag = false;
+                    }
                 }
             }
             break;
         }
-        case 1: { // Time-based mode
+        case 1: {  // Time-based mode
             Serial.println("Mode: Time-based");
-            unsigned long period_time_ms = waterind_settings.period_time * 1000;
-            unsigned long time_s_time_ms = waterind_settings.time_s_time * 1000;
+            unsigned long period_time_ms =
+                waterind_settings.period_time * 1000;
+            unsigned long time_s_time_ms =
+                waterind_settings.time_s_time * 1000;
 
-            if (!pump_flag && current_time - last_pump_control_time >= period_time_ms) {
+            if (!pump_flag && current_time - last_pump_control_time >=
+                                  period_time_ms) {
                 Serial.println("Period time elapsed, starting pump");
                 pump_flag = true;
                 last_pump_control_time = current_time;
                 start_pump();
             }
 
-            if (pump_flag && current_time - last_pump_control_time >= time_s_time_ms) {
+            if (pump_flag && current_time - last_pump_control_time >=
+                                 time_s_time_ms) {
                 Serial.println("Watering time elapsed, stopping pump");
+                stop_pump(false);
                 pump_flag = false;
-                stop_pump();
             }
             break;
         }
         case 2: {
-            Serial.println(" Waterind Mode: off");
+            // Serial.println(" Waterind Mode: off");
+            stop_pump(false);
             pump_flag = false;
-            stop_pump();
             break;
         }
-
     }
 }
 
@@ -312,24 +353,26 @@ void start_pump() {
         Serial.println("Flood detected, stopping pump");
         return;
     }
-    digitalWrite(WATER_PUMP, HIGH);
+    send_start_pomp();
     Serial.println("Pump is ON");
 }
 
-void stop_pump() {
-    digitalWrite(WATER_PUMP, LOW);
-    Serial.println("Pump is OFF");
+void stop_pump(bool netx_state) {
+    if (netx_state != pump_flag) {
+        send_stop_pomp();
+        Serial.println("Pump is OFF");
+    }
 }
 
 int update_status() {
-    if (pump_flag && window_flag) {
-        return 3; // "wat_vent"
+    if (pump_flag && relay_settings.relay_flag) {
+        return 3;  // "wat_vent"
     } else if (pump_flag) {
-        return 1; // "watering"
-    } else if (window_flag) {
-        return 2; // "vent"
+        return 1;  // "watering"
+    } else if (relay_settings.relay_flag) {
+        return 2;  // "vent"
     } else {
-        return 0; // "wait"
+        return 0;  // "wait"
     }
 }
 
@@ -340,10 +383,11 @@ int check_weather_condition(float pressure) {
     const float sunny_min = 745.1;
     const float sunny_max = 790.0;
 
-    if (pressure >= cloudy_or_rainy_min && pressure <= cloudy_or_rainy_max) {
-        return 1; // Облачно или дождь
+    if (pressure >= cloudy_or_rainy_min &&
+        pressure <= cloudy_or_rainy_max) {
+        return 1;  // Облачно или дождь
     } else if (pressure >= sunny_min && pressure <= sunny_max) {
-        return 0; // Солнечно
+        return 0;  // Солнечно
     }
     return 1;
 }
